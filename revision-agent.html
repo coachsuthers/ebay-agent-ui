@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Revise — Family Selling</title>
+  <link rel="stylesheet" href="shared/styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    .editrow { display:grid; gap:14px; grid-template-columns:1fr; margin-top:16px; }
+    @media (min-width:640px){ .editrow.two{ grid-template-columns:1fr 1fr; } }
+    label.fld { display:block; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+    input, select, textarea {
+      width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px;
+      color:var(--text); font-family:var(--body); font-size:15px; padding:10px 12px;
+    }
+    textarea{ min-height:120px; resize:vertical; }
+    .rowactions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
+    .toast{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+      background:var(--surface-2); border:1px solid var(--border-lit); color:var(--text);
+      padding:12px 18px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; }
+    .toast.show{ opacity:1; }
+    .price{ font-family:var(--mono); color:var(--brass); }
+  </style>
+</head>
+<body>
+  <div id="app" class="wrap hidden">
+    <header class="topbar">
+      <div class="brand"><span class="mark">Family <b>Selling</b></span><span class="sub">Revise</span></div>
+      <div id="userchip"></div>
+    </header>
+
+    <a class="back" href="index.html">← Home</a>
+    <p class="eyebrow">02 · Manage</p>
+    <h1 class="page">Live listings</h1>
+    <p class="lede">Pick a listing to edit its title, price or condition, end it, or mark it as sold. Changes are pushed straight to eBay.</p>
+
+    <!-- LIST VIEW -->
+    <div id="listView" class="panel" style="padding:6px 6px 2px;">
+      <div class="empty"><div class="big">Loading…</div><div>Fetching your live eBay listings.</div></div>
+    </div>
+
+    <!-- EDIT VIEW (hidden until a listing is chosen) -->
+    <div id="editView" class="panel hidden">
+      <a class="back" href="#" id="backToList">← Back to listings</a>
+      <h2 id="editTitle" style="font-family:var(--display);font-weight:500;font-size:22px;margin:6px 0 2px;"></h2>
+      <div class="price" id="editSku"></div>
+
+      <div class="editrow two">
+        <div><label class="fld" for="f-title">Title</label><input id="f-title" maxlength="80" /></div>
+        <div><label class="fld" for="f-price">Price (£)</label><input id="f-price" type="number" step="0.01" /></div>
+      </div>
+      <div class="editrow">
+        <div>
+          <label class="fld" for="f-condition">Condition</label>
+          <select id="f-condition">
+            <!-- eBay-native labels; values are enums the backend maps per category -->
+            <option value="NEW">New</option>
+            <option value="NEW_OTHER">New (other)</option>
+            <option value="USED_EXCELLENT">Pre-owned — Excellent</option>
+            <option value="USED_VERY_GOOD">Pre-owned — Very good</option>
+            <option value="USED_GOOD">Pre-owned — Good</option>
+            <option value="USED_ACCEPTABLE">Pre-owned — Acceptable</option>
+            <option value="PRE_OWNED_EXCELLENT">Pre-owned — Excellent (apparel/shoes)</option>
+            <option value="PRE_OWNED_FAIR">Pre-owned — Fair (apparel/shoes)</option>
+          </select>
+        </div>
+      </div>
+      <div class="editrow">
+        <div><label class="fld" for="f-desc">Description</label><textarea id="f-desc"></textarea></div>
+      </div>
+
+      <div class="rowactions">
+        <button class="btn primary" id="saveBtn">Save changes</button>
+        <button class="btn" id="soldBtn">Mark as sold</button>
+        <button class="btn ghost" id="endBtn" style="color:var(--bad);border-color:var(--border);">End listing</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="shared/config.js"></script>
+  <script src="shared/auth.js"></script>
+  <script>
+    const gbp = n => (n==null||isNaN(n)) ? "—" : "£"+Number(n).toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2});
+    const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    let listings = [];
+    let current = null;
+
+    function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
+
+    /* ---- LIST ------------------------------------------------------------ */
+    async function loadListings(){
+      const view = document.getElementById("listView");
+      try {
+        // CONTRACT — GET /ebay/listings returns:
+        // [{ sku, offerId, listingId, title, price, currency, condition, category, quantity }]
+        const res = await Auth.fetch("/ebay/listings");
+        listings = await res.json();
+        if (!Array.isArray(listings) || !listings.length){
+          view.innerHTML = `<div class="empty"><div class="big">No live listings</div><div>Anything you post from “List an item” will show up here.</div></div>`;
+          return;
+        }
+        view.innerHTML = `
+          <table class="ledger">
+            <thead><tr><th>Item</th><th>Condition</th><th class="num">Price</th><th class="num"></th></tr></thead>
+            <tbody>${listings.map((l,i)=>`
+              <tr>
+                <td><span class="title">${esc(l.title)}</span><br><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${esc(l.sku||"")}</span></td>
+                <td>${esc(prettyCond(l.condition))}</td>
+                <td class="num">${gbp(l.price)}</td>
+                <td class="num"><button class="btn" data-edit="${i}">Edit</button></td>
+              </tr>`).join("")}</tbody>
+          </table>`;
+        view.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>openEdit(+b.dataset.edit)));
+      } catch(e){
+        view.innerHTML = `<div class="empty"><div class="big">Couldn't load listings</div><div>The backend GET /ebay/listings endpoint isn't reachable yet.</div></div>`;
+      }
+    }
+
+    function prettyCond(c){
+      const map={NEW:"New",NEW_OTHER:"New (other)",USED_EXCELLENT:"Pre-owned — Excellent",USED_VERY_GOOD:"Pre-owned — Very good",USED_GOOD:"Pre-owned — Good",USED_ACCEPTABLE:"Pre-owned — Acceptable",PRE_OWNED_EXCELLENT:"Pre-owned — Excellent",PRE_OWNED_FAIR:"Pre-owned — Fair"};
+      return map[c]||c||"—";
+    }
+
+    /* ---- EDIT ------------------------------------------------------------ */
+    function openEdit(i){
+      current = listings[i];
+      document.getElementById("listView").classList.add("hidden");
+      const ev = document.getElementById("editView");
+      ev.classList.remove("hidden");
+      document.getElementById("editTitle").textContent = current.title;
+      document.getElementById("editSku").textContent = current.sku || "";
+      document.getElementById("f-title").value = current.title || "";
+      document.getElementById("f-price").value = current.price ?? "";
+      document.getElementById("f-desc").value = current.description || "";
+      const cond = document.getElementById("f-condition");
+      if ([...cond.options].some(o=>o.value===current.condition)) cond.value = current.condition;
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+
+    function backToList(){
+      document.getElementById("editView").classList.add("hidden");
+      document.getElementById("listView").classList.remove("hidden");
+    }
+
+    async function saveChanges(){
+      const payload = {
+        sku: current.sku,
+        offerId: current.offerId,
+        title: document.getElementById("f-title").value.trim(),
+        price: parseFloat(document.getElementById("f-price").value),
+        condition: document.getElementById("f-condition").value,
+        description: document.getElementById("f-desc").value,
+      };
+      try {
+        // CONTRACT — PUT /ebay/listings/:sku updates the inventory item + offer.
+        // Backend re-runs resolveValidCondition for the item's category so the
+        // condition can't regress to New. Returns { ok:true }.
+        const res = await Auth.fetch(`/ebay/listings/${encodeURIComponent(current.sku)}`, {
+          method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error();
+        toast("Changes saved to eBay");
+        Object.assign(current, payload);
+        loadListings(); backToList();
+      } catch(e){ toast("Save failed — check Railway logs"); }
+    }
+
+    async function markSold(){
+      try {
+        // CONTRACT — POST /ebay/listings/:sku/sold ends the listing (if still live)
+        // and writes the sold row to the Sheet (price, date). No buyer PII.
+        const res = await Auth.fetch(`/ebay/listings/${encodeURIComponent(current.sku)}/sold`, { method:"POST" });
+        if (!res.ok) throw new Error();
+        toast("Marked as sold");
+        loadListings(); backToList();
+      } catch(e){ toast("Couldn't mark as sold"); }
+    }
+
+    async function endListing(){
+      if (!confirm("End this listing on eBay? This can't be undone.")) return;
+      try {
+        // CONTRACT — DELETE /ebay/listings/:sku withdraws the offer / ends the listing.
+        const res = await Auth.fetch(`/ebay/listings/${encodeURIComponent(current.sku)}`, { method:"DELETE" });
+        if (!res.ok) throw new Error();
+        toast("Listing ended");
+        loadListings(); backToList();
+      } catch(e){ toast("Couldn't end listing"); }
+    }
+
+    document.getElementById("backToList").addEventListener("click",e=>{e.preventDefault();backToList();});
+    document.getElementById("saveBtn").addEventListener("click",saveChanges);
+    document.getElementById("soldBtn").addEventListener("click",markSold);
+    document.getElementById("endBtn").addEventListener("click",endListing);
+
+    Auth.protect({ onReady(){ loadListings(); } });
+  </script>
+</body>
+</html>

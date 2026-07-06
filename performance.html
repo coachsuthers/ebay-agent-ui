@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Performance — Family Selling</title>
+  <link rel="stylesheet" href="shared/styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="app" class="wrap hidden">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark">Family <b>Selling</b></span>
+        <span class="sub">Performance</span>
+      </div>
+      <div id="userchip"></div>
+    </header>
+
+    <a class="back" href="index.html">← Home</a>
+    <p class="eyebrow">03 · Review</p>
+    <h1 class="page">How we're doing</h1>
+    <p class="lede">Aggregate figures across everything the family has listed. Item-level rows show what sold and for how much — no buyer names, addresses or other personal details are stored or shown.</p>
+
+    <!-- headline metrics -->
+    <section class="metrics" id="metrics" aria-live="polite">
+      <div class="metric"><div class="k">Items listed</div><div class="v" data-m="listed">—</div></div>
+      <div class="metric"><div class="k">Items sold</div><div class="v" data-m="sold">—</div></div>
+      <div class="metric"><div class="k">Sell-through</div><div class="v" data-m="sellThrough">—</div><div class="foot">of listed items sold</div></div>
+      <div class="metric"><div class="k">Total revenue</div><div class="v money" data-m="revenue">—</div></div>
+      <div class="metric"><div class="k">Avg sale price</div><div class="v money" data-m="avgPrice">—</div></div>
+      <div class="metric"><div class="k">Avg days to sell</div><div class="v" data-m="avgDays">—</div></div>
+    </section>
+
+    <h2 style="font-family:var(--display);font-weight:500;font-size:22px;margin:40px 0 14px;">Sold items</h2>
+    <div class="panel" style="padding:6px 6px 2px;">
+      <div id="soldWrap">
+        <div class="empty"><div class="big">Loading…</div><div>Pulling aggregate figures from the sheet.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared/config.js"></script>
+  <script src="shared/auth.js"></script>
+  <script>
+    const gbp = n => (n == null || isNaN(n)) ? "—" : "£" + Number(n).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pct = n => (n == null || isNaN(n)) ? "—" : Math.round(n) + "%";
+    const set = (m, val) => { const el = document.querySelector(`[data-m="${m}"]`); if (el) el.textContent = val; };
+
+    function renderMetrics(d) {
+      set("listed", d.listed ?? "—");
+      set("sold", d.sold ?? "—");
+      set("sellThrough", d.listed ? pct((d.sold / d.listed) * 100) : "—");
+      set("revenue", gbp(d.revenue));
+      set("avgPrice", gbp(d.sold ? d.revenue / d.sold : null));
+      set("avgDays", d.avgDaysToSell != null ? Math.round(d.avgDaysToSell) : "—");
+    }
+
+    function renderSold(items) {
+      const wrap = document.getElementById("soldWrap");
+      if (!items || !items.length) {
+        wrap.innerHTML = `<div class="empty"><div class="big">Nothing sold yet</div><div>Once items are marked as sold, they'll appear here.</div></div>`;
+        return;
+      }
+      const rows = items.map(i => `
+        <tr>
+          <td><span class="title">${escapeHtml(i.title || "Untitled")}</span></td>
+          <td>${escapeHtml(i.category || "—")}</td>
+          <td class="num">${gbp(i.listedPrice)}</td>
+          <td class="num">${gbp(i.soldPrice)}</td>
+          <td class="num">${i.daysToSell != null ? i.daysToSell : "—"}</td>
+          <td class="num">${escapeHtml(i.dateSold || "—")}</td>
+        </tr>`).join("");
+      wrap.innerHTML = `
+        <table class="ledger">
+          <thead><tr>
+            <th>Item</th><th>Category</th>
+            <th class="num">Listed</th><th class="num">Sold</th>
+            <th class="num">Days</th><th class="num">Date sold</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+
+    async function load() {
+      try {
+        // CONTRACT — backend GET /performance returns aggregate figures only:
+        // {
+        //   listed: number, sold: number, revenue: number, avgDaysToSell: number,
+        //   soldItems: [{ title, category, listedPrice, soldPrice, daysToSell, dateSold }]
+        // }
+        // The backend computes these from the Sheet server-side and must NOT
+        // include buyer names, addresses, usernames or transaction IDs.
+        const res = await Auth.fetch("/performance");
+        const d = await res.json();
+        renderMetrics(d);
+        renderSold(d.soldItems || []);
+      } catch (e) {
+        document.getElementById("soldWrap").innerHTML =
+          `<div class="empty"><div class="big">Couldn't load figures</div><div>The backend /performance endpoint isn't reachable yet. Check Railway is deployed and the endpoint exists.</div></div>`;
+      }
+    }
+
+    Auth.protect({ onReady() { load(); } });
+  </script>
+</body>
+</html>

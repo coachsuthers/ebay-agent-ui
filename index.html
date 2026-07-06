@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family Selling — eBay Console</title>
+  <link rel="stylesheet" href="shared/styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <!-- Everything inside #app is hidden until the family member is signed in. -->
+  <div id="app" class="wrap hidden">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark">Family <b>Selling</b></span>
+        <span class="sub">eBay Console</span>
+      </div>
+      <div id="userchip"></div>
+    </header>
+
+    <p class="eyebrow">Home</p>
+    <h1 class="page">What would you like to do?</h1>
+    <p class="lede">List new items from photos, revise anything that's already live, or see how the family's sales are doing overall.</p>
+
+    <nav class="tasks">
+      <a class="task" href="listing-agent.html">
+        <span class="idx">01 · Create</span>
+        <span class="ico">📸</span>
+        <h3>List an item</h3>
+        <p>Upload photos and let the agent identify the item, research a price, and post it live to eBay.</p>
+        <span class="go">Start listing →</span>
+      </a>
+
+      <a class="task" href="revision-agent.html">
+        <span class="idx">02 · Manage</span>
+        <span class="ico">✎</span>
+        <h3>Revise an item</h3>
+        <p>Edit a live listing's title, price, condition or photos — or end it. Mark items as sold here too.</p>
+        <span class="go">View live listings →</span>
+      </a>
+
+      <a class="task" href="performance.html">
+        <span class="idx">03 · Review</span>
+        <span class="ico">◑</span>
+        <h3>Track performance</h3>
+        <p>Aggregate sell-through, revenue and time-to-sell across everything the family has listed.</p>
+        <span class="go">See the numbers →</span>
+      </a>
+    </nav>
+
+    <!-- Signature element: the five backend systems, echoing the tool's own
+         status indicators. Lit live from the authed /health endpoint. -->
+    <div class="systems" id="systems">
+      <span class="label">Systems</span>
+      <span class="sys" data-sys="anthropic"><span class="dot wait"></span>Anthropic</span>
+      <span class="sys" data-sys="railway"><span class="dot wait"></span>Railway</span>
+      <span class="sys" data-sys="sheets"><span class="dot wait"></span>Sheets</span>
+      <span class="sys" data-sys="drive"><span class="dot wait"></span>Drive</span>
+      <span class="sys" data-sys="ebay"><span class="dot wait"></span>eBay</span>
+    </div>
+  </div>
+
+  <script src="shared/config.js"></script>
+  <script src="shared/auth.js"></script>
+  <script>
+    // Map whatever /health returns onto the five dots. Defensive: accepts
+    // booleans, "ok"/"green" strings, or nested { ok: true } shapes.
+    function truthy(v) {
+      if (v === true) return true;
+      if (typeof v === "string") return /^(ok|green|up|true|healthy)$/i.test(v);
+      if (v && typeof v === "object") return truthy(v.ok ?? v.status ?? v.state);
+      return false;
+    }
+    function setDot(name, ok) {
+      const el = document.querySelector(`[data-sys="${name}"] .dot`);
+      if (el) { el.classList.remove("wait"); el.classList.toggle("ok", ok); el.classList.toggle("bad", !ok); }
+    }
+    async function loadSystems() {
+      try {
+        const res = await Auth.fetch("/health");
+        const data = await res.json();
+        // Railway responding at all means Railway is up.
+        setDot("railway", true);
+        // Try common keys; fall back gracefully if the shape differs.
+        const s = data.services || data.status || data;
+        setDot("anthropic", truthy(s.anthropic));
+        setDot("sheets",    truthy(s.sheets));
+        setDot("drive",     truthy(s.drive));
+        setDot("ebay",      truthy(s.ebay));
+      } catch (e) {
+        ["anthropic","railway","sheets","drive","ebay"].forEach(n => setDot(n, false));
+      }
+    }
+
+    Auth.protect({ onReady() { loadSystems(); } });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eBay Listing Agent</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shared/config.js"></script>
+<script src="shared/auth.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a;background:#f5f5f3;min-height:100vh;padding-bottom:4rem}
+.container{max-width:680px;margin:0 auto;padding:0 1.25rem}
+.header{background:#fff;border-bottom:1px solid #e4e4e0;padding:1.25rem 0;margin-bottom:1.5rem}
+.header h1{font-size:20px;font-weight:600;color:#1a1a1a}
+.header p{font-size:13px;color:#666;margin-top:4px}
+.step-bar{display:flex;background:#fff;border:1px solid #e4e4e0;border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.step{flex:1;padding:9px 3px;text-align:center;font-size:11px;color:#bbb;background:#f5f5f3;border-right:1px solid #e4e4e0;transition:all .15s;line-height:1.4}
+.step:last-child{border-right:none}
+.step.active{background:#fff;color:#1a1a1a;font-weight:600}
+.step.done{color:#16a34a}
+.card{background:#fff;border:1px solid #e4e4e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+.lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;display:block}
+/* API key */
+.key-row{display:flex;gap:8px;margin:.5rem 0}
+.key-row input{flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:monospace;background:#fff;color:#1a1a1a;outline:none}
+.key-row input:focus{border-color:#4a6cf7}
+.key-note{font-size:11px;color:#999;line-height:1.5}
+.save-btn{padding:9px 16px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.save-btn:hover{background:#333}
+/* Guided photo slots */
+.photo-intro{font-size:13px;color:#555;margin-bottom:1rem;line-height:1.6;padding:.75rem 1rem;background:#f5f5f3;border-radius:8px}
+.photo-intro strong{color:#1a1a1a}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
+.slot{border:2px dashed #d1d5db;border-radius:10px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;background:#fafafa;text-align:center;padding:8px}
+.slot:hover{border-color:#4a6cf7;background:#f0f4ff}
+.slot.filled{border-style:solid;border-color:#16a34a;background:#f0fdf4}
+.slot.optional{border-style:dashed;border-color:#d1d5db}
+.slot img{width:100%;height:100%;object-fit:cover;border-radius:7px;position:absolute;inset:0}
+.slot-icon{font-size:22px;display:block;margin-bottom:4px}
+.slot-label{font-size:11px;font-weight:600;color:#555;line-height:1.3}
+.slot-sub{font-size:10px;color:#aaa;margin-top:2px;line-height:1.2}
+.slot-rm{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#fee2e2;border:1px solid #fca5a5;cursor:pointer;font-size:13px;color:#dc2626;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
+.slot-badge{position:absolute;top:4px;left:4px;background:#16a34a;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
+.slot-req{position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px}
+.slots-note{font-size:11px;color:#aaa;margin-bottom:1rem}
+/* Confirm */
+.confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.cf{display:flex;flex-direction:column;gap:4px}
+.cf label{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em}
+.cf input,.cf select{padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;font-family:inherit;width:100%}
+.cf input:focus,.cf select:focus{border-color:#4a6cf7}
+.cf input.hi,.cf select.hi{border-color:#f59e0b;background:#fffbeb}
+.conf-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;font-size:13px;padding:.625rem .875rem;border-radius:8px}
+.conf-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+/* Condition */
+.qi{margin-bottom:12px}
+.qi label{font-size:13px;font-weight:500;display:block;margin-bottom:4px;color:#1a1a1a}
+.qi select,.qi input[type="text"]{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;font-family:inherit}
+/* Price */
+.price-hi{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.price-main{font-size:28px;font-weight:700;color:#16a34a}
+.price-floor{font-size:12px;color:#555;margin-top:2px}
+.pr{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0ec}
+.pr:last-child{border-bottom:none}
+.ps{font-size:13px;color:#555}
+.pv{font-size:13px;font-weight:500;color:#1a1a1a}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#1a1a1a;font-size:13px;cursor:pointer;font-family:inherit;transition:background .12s,transform .1s}
+.btn:hover{background:#f5f5f3}
+.btn:active{transform:scale(.98)}
+.btn-p{background:#1a1a1a;color:#fff;border-color:transparent}
+.btn-p:hover{background:#333}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.25rem;align-items:center}
+/* Listing */
+.lo{background:#f5f5f3;border-radius:8px;padding:1rem;font-size:13px;line-height:1.7;color:#1a1a1a;white-space:pre-wrap;word-break:break-word;max-height:280px;overflow-y:auto}
+.cb{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem}
+.cc{font-size:11px;color:#aaa;margin-top:4px}
+/* Sheets config */
+.sheets-row{display:flex;gap:8px;margin-top:.5rem;align-items:flex-start}
+.sheets-row input{flex:1;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:12px;font-family:monospace;background:#fff;color:#1a1a1a;outline:none}
+.sheets-row input:focus{border-color:#4a6cf7}
+.sheets-row button{padding:8px 14px;background:#0f9d58;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sheets-row button:hover{background:#0b8043}
+/* Loading / misc */
+.loading{display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;gap:.75rem;color:#555;font-size:13px}
+.loading small{color:#aaa;font-size:11px}
+.spinner{width:28px;height:28px;border:2.5px solid #e4e4e0;border-top-color:#4a6cf7;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{background:#fef2f2;color:#dc2626;padding:.875rem 1rem;border-radius:8px;font-size:13px;border:1px solid #fecaca;margin-bottom:1rem;line-height:1.5}
+.ok{background:#f0fdf4;color:#15803d;padding:.875rem 1rem;border-radius:8px;font-size:13px;border:1px solid #bbf7d0;margin-bottom:.75rem}
+.warn{background:#fff7ed;color:#c2410c;padding:.75rem 1rem;border-radius:8px;font-size:13px;border:1px solid #fed7aa;margin-bottom:.75rem}
+.flash{color:#16a34a;font-size:12px;font-weight:500}
+.bdg{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.bdg-g{background:#dcfce7;color:#15803d}
+.bdg-a{background:#fef9c3;color:#854d0e}
+.tips{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+.rl{font-size:12px;color:#aaa;cursor:pointer;text-decoration:underline;margin-left:auto}
+.mini-spin{width:14px;height:14px;border:2px solid #e4e4e0;border-top-color:#4a6cf7;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;display:inline-block;vertical-align:middle}
+.note{font-size:12px;color:#888;margin-bottom:.875rem;line-height:1.5}
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;background:#eff6ff;color:#1d4ed8;font-weight:500;margin:2px}
+/* Status panel */
+.status-item{display:flex;align-items:center;gap:7px;padding:7px 10px;background:#f5f5f3;border-radius:8px;min-width:0}
+.st-dot{width:9px;height:9px;border-radius:50%;background:#d1d5db;flex-shrink:0;transition:background .3s}
+.st-dot.ok{background:#16a34a}
+.st-dot.err{background:#dc2626}
+.st-dot.warn{background:#f59e0b}
+.st-dot.spin{background:#4a6cf7;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.st-label{font-size:12px;font-weight:600;color:#1a1a1a;flex-shrink:0}
+.st-msg{font-size:11px;color:#666;margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.bulk-zone{display:block;border:2px dashed #4a6cf7;border-radius:12px;padding:1.5rem 1rem;text-align:center;background:#f8f9ff;cursor:pointer;transition:all .15s;color:#555;font-size:14px;margin-bottom:1rem}
+.bulk-zone:hover{background:#eff3ff;border-color:#3451d1}
+.bulk-zone.dragging{background:#e8edff;border-color:#1d4ed8;border-style:solid}
+/* Slot guidance */
+.slot-guide{background:#f5f5f3;border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem}
+.slot-guide-title{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.625rem}
+.slot-guide-items{display:flex;flex-wrap:wrap;gap:6px}
+.sg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#555;background:#fff;border:1px solid #e4e4e0;border-radius:6px;padding:4px 10px}
+.sg-item.req{border-color:#4a6cf7;color:#1d4ed8;background:#eff6ff}
+.sg-req-dot{width:6px;height:6px;border-radius:50%;background:#4a6cf7;flex-shrink:0}
+/* Slot confidence badges */
+.slot-conf{position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;z-index:2}
+.slot-conf-high{background:#dcfce7;color:#15803d}
+.slot-conf-med{background:#fef9c3;color:#854d0e}
+.slot-conf-low{background:#fee2e2;color:#991b1b}
+.slot.ai-assigned{border-color:#4a6cf7!important}
+/* Auth gate + user chip (Phase 3) */
+.hidden{display:none!important}
+.gate{min-height:100vh;display:grid;place-items:center;padding:1.5rem}
+.gate .card{max-width:360px;width:100%;text-align:center;margin:0}
+.gate .mark{font-size:22px;font-weight:700;margin-bottom:.4rem;color:#1a1a1a}
+.gate .mark b{color:#4a6cf7}
+.gate p{font-size:13px;color:#666;margin:0 0 1.4rem;line-height:1.55}
+.gate .gbtn{display:flex;justify-content:center;min-height:44px}
+.gate .err{background:none;border:none;padding:0;margin:.9rem 0 0;color:#dc2626;font-size:13px;min-height:18px}
+.userchip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4e4e0;border-radius:999px;padding:4px 6px 4px 12px;font-size:13px;color:#555;white-space:nowrap}
+.userchip .avatar{width:26px;height:26px;border-radius:50%;background:#eff6ff;color:#4a6cf7;display:grid;place-items:center;font-size:12px;font-weight:600}
+.userchip button{background:none;border:none;color:#999;font-size:12px;cursor:pointer;font-family:inherit;padding:2px 6px}
+.userchip button:hover{color:#1a1a1a}
+</style>
+</head>
+<body>
+
+<div id="app" class="hidden">
+
+<div class="header">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+    <div>
+      <h1>&#127991; eBay Listing Agent</h1>
+      <p>Guided photos &rarr; confirm details &rarr; condition &rarr; pricing &rarr; listing</p>
+    </div>
+    <div id="userchip"></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Config now lives server-side: Anthropic key, backend URL and Sheets URL are handled by Railway + shared/config.js -->
+
+  <!-- STEP BAR -->
+  <div class="step-bar">
+    <div class="step active" id="s1">&#128247;<br>Photos</div>
+    <div class="step" id="s2">&#10004;<br>Confirm</div>
+    <div class="step" id="s3">&#128203;<br>Condition</div>
+    <div class="step" id="s4">&#163;<br>Pricing</div>
+    <div class="step" id="s5">&#128196;<br>Listing</div>
+  </div>
+
+  <!-- CONNECTION STATUS PANEL -->
+  <div class="card" id="statusPanel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <span class="lbl" style="margin:0">System status</span>
+      <button onclick="checkStatus()" class="btn btn-sm" id="statusRefreshBtn" style="font-size:11px;padding:4px 10px">&#8635; Refresh</button>
+    </div>
+    <div id="statusGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="status-item" id="st-server">  <span class="st-dot"></span><span class="st-label">Backend server</span><span class="st-msg">Checking…</span></div>
+      <div class="status-item" id="st-ebay">    <span class="st-dot"></span><span class="st-label">eBay API</span>    <span class="st-msg">Checking…</span></div>
+      <div class="status-item" id="st-sheets">  <span class="st-dot"></span><span class="st-label">Google Sheets</span><span class="st-msg">Checking…</span></div>
+      <div class="status-item" id="st-drive">   <span class="st-dot"></span><span class="st-label">Google Drive</span> <span class="st-msg">Checking…</span></div>
+    </div>
+    <div id="statusEbayConnect" style="display:none;margin-top:.875rem;padding-top:.875rem;border-top:1px solid #f0f0ec">
+      <p style="font-size:12px;color:#555;margin:0">
+        &#9888; eBay isn't connected right now. This is managed by the account admin &mdash; please let them know so they can reconnect it.
+      </p>
+    </div>
+        <p style="font-size:11px;color:#aaa;margin-top:.75rem">Backend: <span id="serverUrlDisplay" style="font-family:monospace"></span></p>
+  </div>
+
+  <!-- STEP 1: GUIDED PHOTOS -->
+  <div id="p1">
+    <div class="card">
+      <span class="lbl">Step 1 — Add photos</span>
+      <div class="photo-intro" id="photoGuide">
+        <strong>&#128161; Tip:</strong> Upload all your photos at once using the bulk upload zone below, or click individual slots to add photos one by one.
+      </div>
+
+      <!-- Bulk upload zone -->
+      <input type="file" id="bulkInput" accept="image/*,.heic,.heif" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+      <label for="bulkInput" class="bulk-zone" id="bulkZone">
+        <span style="font-size:28px;display:block;margin-bottom:.5rem">&#128444;</span>
+        <strong>Drop all photos here</strong> &mdash; or click to select multiple
+        <span style="display:block;font-size:11px;color:#aaa;margin-top:5px">The agent will automatically assign each photo to the right slot &bull; JPEG &bull; PNG &bull; WebP</span>
+      </label>
+
+      <!-- Slot guidance -->
+      <div class="slot-guide" id="slotGuide">
+        <div class="slot-guide-title">&#128247; What photos to include</div>
+        <div class="slot-guide-items" id="slotGuideItems"></div>
+      </div>
+
+      <!-- Hidden single-file input for slot clicks -->
+      <input type="file" id="fileInput" accept="image/*,.heic,.heif" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+
+      <!-- Photo slots rendered by JS -->
+      <div class="slots" id="slots"></div>
+      <p class="slots-note" id="slotsNote">Or click any slot above to add a photo individually.</p>
+
+      <div id="uploadMsg"></div>
+      <div class="btn-row">
+        <button class="btn btn-p" id="btnIdentify" style="display:none" onclick="identify()">&#128270; Analyse photos</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="p2" style="display:none"></div>
+  <div id="p3" style="display:none"></div>
+  <div id="p4" style="display:none"></div>
+  <div id="p5" style="display:none"></div>
+
+  <!-- GOOGLE SHEETS + DRIVE SETUP INSTRUCTIONS -->
+  <div class="card" style="margin-top:2rem;border-color:#e4e4e0">
+    <span class="lbl" style="margin-top:1.25rem">Google Sheets &amp; Drive setup guide</span>
+    <p class="note">This script handles both item data logging to Sheets and photo storage to Drive. Update your existing Apps Script by replacing all the code with the version below, then follow the authorisation steps carefully.</p>
+    <ol style="font-size:13px;color:#555;line-height:2;padding-left:1.25rem">
+      <li>Go to <a href="https://script.google.com" target="_blank" style="color:#1d4ed8">script.google.com</a> and open your existing project</li>
+      <li>Select all the code and replace it with the script below</li>
+      <li><strong>Authorise Drive access:</strong> in the function dropdown (top toolbar) select <strong>authoriseDrive</strong> &rarr; click <strong>Run</strong> &rarr; click through all Google permission prompts and grant access to both Sheets and Drive</li>
+      <li>Click <strong>Deploy &rarr; Manage deployments</strong> &rarr; pencil icon &rarr; <strong>New version</strong> &rarr; Deploy</li>
+      <li>Test: visit <code style="font-size:11px;background:#f5f5f3;padding:1px 4px;border-radius:3px">https://your-railway-url.up.railway.app/test/drive</code> &mdash; should return <strong>{"ok":true}</strong></li>
+    </ol>
+    <p class="note" style="margin-top:.5rem">&#128218; <strong>Drive folder structure:</strong> My Drive &rarr; <strong>eBay Listings</strong> &rarr; <em>2026-06-28 — Nike Air Max 90</em> &rarr; photos. Created automatically. Does not need to be in the same location as the spreadsheet.</p>
+    <div style="margin-top:1rem;background:#1a1a1a;border-radius:8px;padding:1rem;font-size:12px;font-family:monospace;color:#e5e7eb;line-height:1.7;overflow-x:auto">
+      <div style="color:#9ca3af;margin-bottom:.5rem">// eBay Agent — Apps Script (replace all existing code with this)</div>
+      <div>var SHEET_NAME    = "Items";</div>
+      <div>var ROOT_FOLDER   = "eBay Listings"; <span style="color:#9ca3af">// top-level folder in My Drive</span></div>
+      <div>&nbsp;</div>
+      <div><span style="color:#9ca3af">// ── Run this function ONCE to authorise Drive access ─────────────</span></div>
+      <div><span style="color:#9ca3af">// Select "authoriseDrive" in the dropdown above and click Run.</span></div>
+      <div><span style="color:#9ca3af">// Click through ALL Google permission prompts. Do this before deploying.</span></div>
+      <div>function authoriseDrive() {</div>
+      <div>&nbsp;&nbsp;<span style="color:#9ca3af">// Call every DriveApp method we use — forces Google to request all permissions</span></div>
+      <div>&nbsp;&nbsp;var root    = DriveApp.getRootFolder();</div>
+      <div>&nbsp;&nbsp;var testFolder = root.createFolder("_ebay_agent_auth_test");</div>
+      <div>&nbsp;&nbsp;var testBlob   = Utilities.newBlob("test", "text/plain", "test.txt");</div>
+      <div>&nbsp;&nbsp;var testFile   = testFolder.createFile(testBlob);</div>
+      <div>&nbsp;&nbsp;testFile.setTrashed(true);</div>
+      <div>&nbsp;&nbsp;testFolder.setTrashed(true);</div>
+      <div>&nbsp;&nbsp;var ss = SpreadsheetApp.getActiveSpreadsheet();</div>
+      <div>&nbsp;&nbsp;Logger.log("All permissions granted: Drive read+write, Sheets. You can now deploy.");</div>
+      <div>}</div>
+      <div>&nbsp;</div>
+      <div><span style="color:#9ca3af">// Get or create a folder by name inside a parent folder</span></div>
+      <div>function getOrCreateSubfolder(parent, name) {</div>
+      <div>&nbsp;&nbsp;var folders = parent.getFoldersByName(name);</div>
+      <div>&nbsp;&nbsp;return folders.hasNext() ? folders.next() : parent.createFolder(name);</div>
+      <div>}</div>
+      <div>&nbsp;</div>
+      <div><span style="color:#9ca3af">// Get or create the root eBay Listings folder</span></div>
+      <div>function getRootFolder() {</div>
+      <div>&nbsp;&nbsp;var folders = DriveApp.getFoldersByName(ROOT_FOLDER);</div>
+      <div>&nbsp;&nbsp;return folders.hasNext() ? folders.next() : DriveApp.createFolder(ROOT_FOLDER);</div>
+      <div>}</div>
+      <div>&nbsp;</div>
+      <div>function doPost(e) {</div>
+      <div>&nbsp;&nbsp;try {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;var raw  = e.postData ? e.postData.contents : "{}";</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;var data = JSON.parse(raw);</div>
+      <div>&nbsp;</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// ── Batch image upload ────────────────────────</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;if (data.action === "uploadBatch") {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var root    = getRootFolder();</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var folder  = getOrCreateSubfolder(root, data.folderName || "Uploads");</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var results = [];</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; data.images.length; i++) {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var img   = data.images[i];</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var bytes = Utilities.base64Decode(img.base64);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var blob  = Utilities.newBlob(bytes, img.mimeType || "image/jpeg", img.filename || ("photo_" + (i+1) + ".jpg"));</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var file  = folder.createFile(blob);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;results.push({url: "https://drive.google.com/uc?export=view&id=" + file.getId(), id: file.getId()});</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JSON.stringify({status:"ok", results:results, folderId:folder.getId()}))</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// ── Single image upload ───────────────────────</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;if (data.action === "uploadImage") {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var root    = getRootFolder();</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// Use item subfolder name sent from agent, or fall back to date</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var subName = data.folderName || Utilities.formatDate(new Date(), "Europe/London", "yyyy-MM-dd");</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var folder  = getOrCreateSubfolder(root, subName);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var bytes   = Utilities.base64Decode(data.base64);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var blob    = Utilities.newBlob(bytes, data.mimeType || "image/jpeg", data.filename || "photo.jpg");</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var file    = folder.createFile(blob);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// Share with link so eBay can access the image URL</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var url = "https://drive.google.com/uc?export=view&id=" + file.getId();</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JSON.stringify({status:"ok", url:url, id:file.getId(), folderId:folder.getId()}))</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+      <div>&nbsp;</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// ── Item log ──────────────────────────────────</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;var ss    = SpreadsheetApp.getActiveSpreadsheet();</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;if (sheet.getLastRow() === 0) {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sheet.appendRow(["Date","Name","Brand","Model","Category","Subcategory",</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Colour","Material","Size","Gender","Era","Country","Key Specs","Condition",</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"eBay Sold Avg","eBay Live Avg","Vinted Avg","Retail Price",</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Recommended Price","Best Offer Floor","Price Confidence",</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Listing Title","eBay Condition","Category Path","Postage","Photo Folder"]);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;var folderUrl = data.photoFolderId</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;? "https://drive.google.com/drive/folders/" + data.photoFolderId : "";</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;sheet.appendRow([</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new Date(), data.name, data.brand, data.model,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.category, data.subcategory, data.color, data.material,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.size, data.gender, data.approximate_age, data.country_of_manufacture,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.key_specs, data.condition_summary,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.ebay_sold_avg, data.ebay_current_avg,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.vinted_avg, data.retail_price, data.recommended_price,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.best_offer_floor, data.price_confidence,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.listing_title, data.ebay_condition, data.category_path, data.postage,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;folderUrl]);</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify({status:"ok"}))</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
+      <div>&nbsp;&nbsp;} catch(err) {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify({status:"error",message:err.toString()}))</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
+      <div>&nbsp;&nbsp;}</div>
+      <div>}</div>
+      <div>&nbsp;</div>
+      <div>function doGet(e) {</div>
+      <div>&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify({status:"ok",message:"eBay Agent connected"}))</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
+      <div>}</div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+</div><!-- /#app -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+  var MODEL    = "claude-sonnet-4-6"; // forwarded to the /ai/messages proxy
+  var images   = {}; // keyed by slot id: {b64, mime, label}
+  var itemInfo = null, cond = {}, priceData = null;
+
+  // Default slot layout — 10 slots matching eBay's recommended image count
+  var DEFAULT_SLOTS = [
+    {id:"main",    label:"Main photo",    sub:"Clear front view",          icon:"&#128247;", required:true},
+    {id:"angle2",  label:"Second angle",  sub:"Back or three-quarter",     icon:"&#128247;", required:false},
+    {id:"angle3",  label:"Third angle",   sub:"Other side",                icon:"&#128247;", required:false},
+    {id:"angle4",  label:"Fourth angle",  sub:"Top or underside",          icon:"&#128247;", required:false},
+    {id:"close1",  label:"Close-up 1",    sub:"Brand or logo detail",      icon:"&#128269;", required:false},
+    {id:"close2",  label:"Close-up 2",    sub:"Key feature or texture",    icon:"&#128269;", required:false},
+    {id:"label",   label:"Label / tag",   sub:"Size, brand or care label", icon:"&#127991;", required:false},
+    {id:"defect",  label:"Any defects",   sub:"Wear, marks or damage",     icon:"&#9888;",   required:false},
+    {id:"incl1",   label:"What's included", sub:"All items in the box",    icon:"&#128218;", required:false},
+    {id:"incl2",   label:"Extra detail",  sub:"Anything else relevant",    icon:"&#128247;", required:false},
+  ];
+
+  // Category-specific slot templates (8-10 slots each)
+  var SLOT_TEMPLATES = {
+    "Footwear": [
+      {id:"top",    label:"Top view",      sub:"Looking down on shoe",       icon:"&#128247;", required:true},
+      {id:"side_l", label:"Left side",     sub:"Left profile",               icon:"&#128247;", required:true},
+      {id:"side_r", label:"Right side",    sub:"Right profile",              icon:"&#128247;", required:true},
+      {id:"back",   label:"Back view",     sub:"Heel and counter",           icon:"&#128247;", required:true},
+      {id:"sole",   label:"Sole",          sub:"Bottom — show wear clearly", icon:"&#128247;", required:true},
+      {id:"label",  label:"Size label",    sub:"Inside tongue or insole",    icon:"&#127991;", required:true},
+      {id:"insole", label:"Insole",        sub:"Inside of shoe",             icon:"&#128247;", required:false},
+      {id:"laces",  label:"Laces detail",  sub:"Lace condition and colour",  icon:"&#128269;", required:false},
+      {id:"defect", label:"Any defects",   sub:"Scuffs, creasing or marks",  icon:"&#9888;",   required:false},
+      {id:"box",    label:"Box / extras",  sub:"Original box if included",   icon:"&#128218;", required:false},
+    ],
+    "Clothing": [
+      {id:"front",   label:"Front",         sub:"Full front of garment laid flat", icon:"&#128247;", required:true},
+      {id:"back",    label:"Back",          sub:"Full rear of garment",            icon:"&#128247;", required:true},
+      {id:"label",   label:"Care label",    sub:"Brand, size & care inside",       icon:"&#127991;", required:true},
+      {id:"detail1", label:"Brand/logo",    sub:"Close-up of branding",            icon:"&#128269;", required:false},
+      {id:"detail2", label:"Fabric",        sub:"Fabric texture close-up",         icon:"&#128269;", required:false},
+      {id:"detail3", label:"Fastenings",    sub:"Zip, buttons or poppers",         icon:"&#128269;", required:false},
+      {id:"flat",    label:"Laid flat",     sub:"Garment laid flat with ruler",    icon:"&#128247;", required:false},
+      {id:"worn",    label:"Worn view",     sub:"On hanger or mannequin",          icon:"&#128247;", required:false},
+      {id:"defect",  label:"Defects",       sub:"Fading, pilling, stains or marks",icon:"&#9888;",   required:false},
+      {id:"pocket",  label:"Pocket/lining", sub:"Pocket or lining detail",         icon:"&#128269;", required:false},
+    ],
+    "Electronics": [
+      {id:"front",   label:"Front",         sub:"Screen / main face powered on",  icon:"&#128247;", required:true},
+      {id:"back",    label:"Back",          sub:"Rear panel",                      icon:"&#128247;", required:true},
+      {id:"left",    label:"Left side",     sub:"Left side ports",                 icon:"&#128247;", required:true},
+      {id:"right",   label:"Right side",    sub:"Right side ports",                icon:"&#128247;", required:true},
+      {id:"label",   label:"Serial label",  sub:"Model, serial, spec sticker",     icon:"&#127991;", required:true},
+      {id:"screen",  label:"Screen detail", sub:"Screen — show any marks",         icon:"&#128247;", required:false},
+      {id:"ports",   label:"Ports close-up",sub:"All ports in detail",             icon:"&#128269;", required:false},
+      {id:"accessories",label:"Accessories",sub:"All cables, charger, case",       icon:"&#128218;", required:false},
+      {id:"defect",  label:"Defects",       sub:"Scratches, dents or damage",      icon:"&#9888;",   required:false},
+      {id:"box",     label:"Box",           sub:"Original box if available",       icon:"&#128218;", required:false},
+    ],
+    "Mobile Phones": [
+      {id:"front",   label:"Screen on",     sub:"Front with screen lit",           icon:"&#128247;", required:true},
+      {id:"back",    label:"Back",          sub:"Rear panel and camera",           icon:"&#128247;", required:true},
+      {id:"left",    label:"Left side",     sub:"Volume/SIM buttons",              icon:"&#128247;", required:true},
+      {id:"right",   label:"Right side",    sub:"Power button / USB port",         icon:"&#128247;", required:true},
+      {id:"label",   label:"About screen",  sub:"Settings > About > Model/storage",icon:"&#128247;", required:true},
+      {id:"screen_off",label:"Screen off",  sub:"Screen off — show condition",     icon:"&#128247;", required:false},
+      {id:"top_bot", label:"Top & bottom",  sub:"Headphone/speaker grilles",       icon:"&#128247;", required:false},
+      {id:"battery", label:"Battery info",  sub:"Settings > Battery Health",       icon:"&#128247;", required:false},
+      {id:"accessories",label:"Accessories",sub:"Box, cable, charger, case",       icon:"&#128218;", required:false},
+      {id:"defect",  label:"Defects",       sub:"Scratches, cracks or marks",      icon:"&#9888;",   required:false},
+    ],
+    "Sporting Goods": [
+      {id:"main",    label:"Main view",     sub:"Full item front",                 icon:"&#128247;", required:true},
+      {id:"side",    label:"Side view",     sub:"Profile",                         icon:"&#128247;", required:true},
+      {id:"back",    label:"Back/rear",     sub:"Reverse side",                    icon:"&#128247;", required:false},
+      {id:"detail1", label:"Brand/logo",    sub:"Brand marking close-up",          icon:"&#128269;", required:false},
+      {id:"label",   label:"Size/spec label",sub:"Size, weight or spec label",     icon:"&#127991;", required:false},
+      {id:"detail2", label:"Key feature",   sub:"Key functional component",        icon:"&#128269;", required:false},
+      {id:"defect",  label:"Wear/damage",   sub:"Any wear, cracks or damage",      icon:"&#9888;",   required:false},
+      {id:"incl",    label:"What's included",sub:"All parts and accessories",      icon:"&#128218;", required:false},
+    ],
+  };
+
+  var currentSlots = DEFAULT_SLOTS.slice();
+  var activeSlotId = null;
+
+  // ── BACKEND URL ────────────────────────────
+  // Fixed to the Railway backend from shared/config.js. Every privileged call
+  // goes through Auth.fetch(), which prepends this URL and attaches the token.
+  var SERVER = window.EBAY_AGENT_CONFIG.BACKEND_URL;
+
+  // ── STATUS CHECK ────────────────────────────────────────────────────────────
+  function setStatusItem(id, state, msg) {
+    var item = document.getElementById(id);
+    if (!item) return;
+    var dot  = item.querySelector('.st-dot');
+    var text = item.querySelector('.st-msg');
+    dot.className  = 'st-dot ' + state;
+    text.textContent = msg;
+    text.title       = msg; // show full text on hover
+  }
+
+  window.checkStatus = async function() {
+    var btn = document.getElementById('statusRefreshBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+    // Show current server URL in footer
+    var urlDisplay = document.getElementById('serverUrlDisplay');
+    if (urlDisplay) urlDisplay.textContent = SERVER;
+
+    // Update direct link href
+    var directLink = document.getElementById('ebayDirectLink');
+    if (directLink) directLink.href = SERVER + '/ebay/connect';
+
+    ['st-server','st-ebay','st-sheets','st-drive'].forEach(function(id){
+      setStatusItem(id, 'spin', 'Checking…');
+    });
+    document.getElementById('statusEbayConnect').style.display = 'none';
+
+    try {
+      var res  = await Auth.fetch('/health', { signal: AbortSignal.timeout(8000) });
+      var data = await res.json();
+      var s    = data.status;
+
+      setStatusItem('st-server', s.server.ok       ? 'ok'  : 'err',  s.server.message);
+      setStatusItem('st-ebay',   s.ebay.ok         ? 'ok'  : 'warn', s.ebay.message);
+      setStatusItem('st-sheets', s.googleSheets.ok ? 'ok'  : 'warn', s.googleSheets.message);
+      setStatusItem('st-drive',  s.googleDrive.ok  ? 'ok'  : 'warn', s.googleDrive.message);
+
+      if (!s.ebay.ok) {
+        document.getElementById('statusEbayConnect').style.display = 'block';
+      }
+    } catch(e) {
+      setStatusItem('st-server', 'err', 'Not reachable — check Railway deployment');
+      setStatusItem('st-ebay',   'err', 'Server needed');
+      setStatusItem('st-sheets', 'err', 'Server needed');
+      setStatusItem('st-drive',  'err', 'Server needed');
+      document.getElementById('statusEbayConnect').style.display = 'block';
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Refresh'; }
+  };
+
+  window.connectEbay = function() {
+    // Try popup first — if blocked, fall back to same-tab redirect
+    var connectUrl = SERVER + '/ebay/connect';
+    var win = window.open(connectUrl, 'ebay_auth', 'width=650,height=750,left=200,top=100');
+
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      // Popup was blocked — offer direct link instead
+      var panel = document.getElementById('statusEbayConnect');
+      panel.innerHTML = '<p style="font-size:13px;color:#555;margin-bottom:.75rem">'
+        + '&#9888; Popup was blocked by your browser. Click the button below to open eBay sign-in in a new tab. '
+        + 'After signing in, come back here and click <strong>Refresh</strong>.</p>'
+        + '<a href="' + connectUrl + '" target="_blank" class="btn btn-p" style="text-decoration:none;display:inline-flex">&#128279; Open eBay sign-in &rarr;</a>'
+        + ' &nbsp;<button class="btn" onclick="checkStatus()">&#8635; Refresh status</button>';
+      return;
+    }
+
+    // Popup opened — poll for closure then re-check status
+    // (postMessage cross-origin won't work from Railway back to localhost,
+    //  so we just detect when the window closes)
+    var poll = setInterval(function() {
+      try {
+        if (!win || win.closed) {
+          clearInterval(poll);
+          setTimeout(checkStatus, 1000); // give Railway a moment then refresh
+        }
+      } catch(e) { clearInterval(poll); setTimeout(checkStatus, 1000); }
+    }, 800);
+  };
+
+  var fileInput   = document.getElementById("fileInput");
+  var bulkInput   = document.getElementById("bulkInput");
+  var bulkZone    = document.getElementById("bulkZone");
+  var uploadMsg   = document.getElementById("uploadMsg");
+  var btnIdentify = document.getElementById("btnIdentify");
+
+  // Render the slot guidance chips
+  function renderSlotGuide() {
+    var items = document.getElementById("slotGuideItems");
+    if (!items) return;
+    items.innerHTML = currentSlots.map(function(s){
+      return '<div class="sg-item'+(s.required?' req':'')+'"><span class="sg-req-dot" style="background:'+(s.required?'#4a6cf7':'#d1d5db')+'"></span>'+s.label+'</div>';
+    }).join("");
+  }
+
+  function renderSlots() {
+    var slotsEl = document.getElementById("slots");
+    slotsEl.innerHTML = "";
+    currentSlots.forEach(function(slot) {
+      var div = document.createElement("div");
+      var aiAssigned = images[slot.id] && images[slot.id].aiAssigned;
+      div.className = "slot" + (images[slot.id] ? " filled" + (aiAssigned ? " ai-assigned" : "") : "");
+      div.dataset.slot = slot.id;
+
+      if (images[slot.id]) {
+        var img = document.createElement("img");
+        img.src = "data:"+images[slot.id].mime+";base64,"+images[slot.id].b64;
+        img.alt = slot.label;
+        div.appendChild(img);
+
+        // Green tick badge
+        var badge = document.createElement("div");
+        badge.className = "slot-badge";
+        badge.textContent = aiAssigned ? "AI" : "✓";
+        badge.style.background = aiAssigned ? "#4a6cf7" : "#16a34a";
+        div.appendChild(badge);
+
+        // Confidence badge for AI-assigned slots
+        if (aiAssigned && images[slot.id].confidence) {
+          var conf = document.createElement("div");
+          var cl = images[slot.id].confidence === "high" ? "slot-conf-high"
+                 : images[slot.id].confidence === "medium" ? "slot-conf-med" : "slot-conf-low";
+          conf.className = "slot-conf " + cl;
+          conf.textContent = images[slot.id].confidence;
+          div.appendChild(conf);
+        }
+
+        // Remove button
+        var rm = document.createElement("div"); rm.className="slot-rm"; rm.textContent="×";
+        rm.addEventListener("click", function(e){
+          e.stopPropagation();
+          delete images[slot.id];
+          renderSlots(); updateIdentifyBtn();
+        });
+        div.appendChild(rm);
+      } else {
+        div.innerHTML = '<span class="slot-icon">'+slot.icon+'</span>'
+          +'<span class="slot-label">'+slot.label+'</span>'
+          +'<span class="slot-sub">'+slot.sub+'</span>'
+          +(slot.required?'<span class="slot-req">Required</span>':'');
+      }
+
+      div.addEventListener("click", function(e) {
+        if (e.target.classList.contains("slot-rm")) return;
+        activeSlotId = slot.id;
+        fileInput.click();
+      });
+      slotsEl.appendChild(div);
+    });
+    updateIdentifyBtn();
+    renderSlotGuide();
+  }
+
+  function updateIdentifyBtn() {
+    var totalFilled = Object.keys(images).length;
+    btnIdentify.style.display = totalFilled > 0 ? "inline-flex" : "none";
+    var requiredFilled = currentSlots.filter(function(s){return s.required;}).every(function(s){return !!images[s.id];});
+    btnIdentify.textContent = requiredFilled ? "✓ Analyse photos" : "Analyse (required slots missing)";
+    btnIdentify.style.opacity = requiredFilled ? "1" : "0.75";
+  }
+
+  async function updatePhotoGuide(category) {
+    var guide = document.getElementById("photoGuide");
+    var template = SLOT_TEMPLATES[category];
+    if (template) {
+      var oldImages = images;
+      currentSlots = template;
+      images = {};
+
+      // First pass: carry over any images whose slot ID exists in the new template
+      currentSlots.forEach(function(s) {
+        if (oldImages[s.id]) images[s.id] = oldImages[s.id];
+      });
+
+      // Second pass: carry over any remaining images that didn't match by ID
+      // Place them into the first available unfilled slot
+      var unmatchedPhotos = Object.entries(oldImages).filter(function(entry) {
+        return !images[entry[0]] &&                             // not already carried over by ID
+               !Object.values(images).some(function(img) {    // not a duplicate of something already placed
+                 var mid = Math.floor(img.b64.length / 2);
+                 var mid2 = Math.floor(entry[1].b64.length / 2);
+                 return img.b64.substring(mid, mid+100) === entry[1].b64.substring(mid2, mid2+100);
+               });
+      }).map(function(entry) { return entry[1]; });
+
+      unmatchedPhotos.forEach(function(photo) {
+        // Find first unfilled slot
+        var emptySlot = currentSlots.find(function(s) { return !images[s.id]; });
+        if (emptySlot) {
+          images[emptySlot.id] = photo;
+        }
+      });
+
+      var carried = Object.keys(images).length;
+      var total   = Object.keys(oldImages).length;
+      guide.innerHTML = '<strong>&#128247; '+esc(category)+' detected</strong> — slots updated for this item type. '
+        + 'Re-sorting your photos into the new slots&hellip;';
+
+      // Re-run AI slot assignment on the new template layout
+      // This correctly places e.g. a sole photo into the "sole" slot
+      var allPhotos = Object.values(oldImages);
+      if (allPhotos.length > 0 && allPhotos.length <= currentSlots.length) {
+        // Reset and re-assign
+        images = {};
+        await reassignPhotosToSlots(allPhotos, category, guide);
+      } else {
+        // More photos than slots or zero — just carry over what we have
+        guide.innerHTML = '<strong>&#128247; '+esc(category)+' detected</strong> — slots updated.'
+          + (carried < total ? ' <strong style="color:#f59e0b">'+carried+'/'+total+' photos preserved.</strong>' : ' All '+carried+' photos preserved.');
+        renderSlots();
+        renderSlotGuide();
+      }
+    } else {
+      guide.innerHTML = '<strong>&#10004; '+esc(category)+'</strong> — add as many angles as you have for better results.';
+      renderSlots();
+      renderSlotGuide();
+    }
+  } // end updatePhotoGuide
+
+  // Re-assign existing photos to new slot layout after category template switch
+  // Uses the same AI logic as bulk upload but operates on already-loaded photos
+  async function reassignPhotosToSlots(photoList, category, guideEl) {
+    if (!photoList.length) { renderSlots(); renderSlotGuide(); return; }
+
+    try {
+      // Compress for analysis — keeps payload under API limits
+      var compressedList = await Promise.all(photoList.map(function(img) {
+        return compressImage(img.b64, img.mime, 800, 0.75);
+      }));
+
+      var assignContent = [];
+      compressedList.forEach(function(compressedB64, idx) {
+        assignContent.push({ type:"text", text:"[Photo "+(idx+1)+"]" });
+        assignContent.push({ type:"image", source:{ type:"base64", media_type:"image/jpeg", data:compressedB64 } });
+      });
+
+      var slotList = currentSlots.map(function(s) {
+        return '"'+s.id+'" ('+s.label+': '+s.sub+(s.required?' — required':'')+')';
+      }).join(", ");
+
+      assignContent.push({ type:"text", text:
+        "Re-assign these "+photoList.length+" photos to the correct slots for a "+category+" item. "
+        +"Slots: "+slotList+". "
+        +"Each slot takes ONE photo. Return ONLY valid JSON with key 'assignments': array of objects with "
+        +"\"photo_index\" (0-based), \"slot_id\" (exact string), \"confidence\" (high/medium/low), \"reason\" (short phrase)."
+      });
+
+      var raw = await callClaude([{role:"user",content:assignContent}],
+        "Assign photos to slots accurately. Return only valid JSON.");
+      var result = parseJSON(raw);
+      var assignments = result.assignments || [];
+
+      images = {};
+      assignments.forEach(function(a) {
+        if (a.photo_index >= photoList.length) return;
+        var slotExists = currentSlots.some(function(s){ return s.id===a.slot_id; });
+        if (!slotExists || images[a.slot_id]) return;
+        var photo = photoList[a.photo_index];
+        images[a.slot_id] = {
+          b64:        photo.b64,
+          mime:       photo.mime,
+          label:      currentSlots.find(function(s){return s.id===a.slot_id;}).label,
+          aiAssigned: true,
+          confidence: a.confidence || "medium",
+          reason:     a.reason || ""
+        };
+      });
+
+      var assigned = Object.keys(images).length;
+      if (guideEl) {
+        guideEl.innerHTML = '<strong>&#128247; '+esc(category)+' detected</strong> — '
+          +assigned+' photo'+(assigned!==1?'s':'')+' re-sorted into the new slots. '
+          +'Blue <strong>AI</strong> badges show auto-assigned photos. Click any slot to replace.';
+      }
+    } catch(e) {
+      // AI re-assignment failed — fall back to filling slots in order
+      photoList.forEach(function(photo, idx) {
+        if (idx >= currentSlots.length) return;
+        var slot = currentSlots[idx];
+        if (!images[slot.id]) {
+          images[slot.id] = { b64:photo.b64, mime:photo.mime, label:slot.label, aiAssigned:false };
+        }
+      });
+      if (guideEl) {
+        guideEl.innerHTML = '<strong>&#128247; '+esc(category)+' detected</strong> — photos placed in order (AI re-sort unavailable).';
+      }
+    }
+    renderSlots();
+    renderSlotGuide();
+    updateIdentifyBtn();
+  }
+
+  // ── BULK UPLOAD & AI SLOT ASSIGNMENT ──────────────────────────────────────
+
+  // Drag-and-drop on bulk zone
+  bulkZone.addEventListener("dragover", function(e){ e.preventDefault(); bulkZone.classList.add("dragging"); });
+  bulkZone.addEventListener("dragleave", function(){ bulkZone.classList.remove("dragging"); });
+  bulkZone.addEventListener("drop", function(e){
+    e.preventDefault(); bulkZone.classList.remove("dragging");
+    handleBulkFiles(Array.from(e.dataTransfer.files));
+  });
+  bulkInput.addEventListener("change", function(e){
+    handleBulkFiles(Array.from(e.target.files||[]));
+    bulkInput.value = "";
+  });
+
+  async function handleBulkFiles(files) {
+    if (!files.length) return;
+    var heicFiles = files.filter(isHeic);
+    if (heicFiles.length) { showHeicModal(heicFiles.map(function(f){return f.name;})); files = files.filter(function(f){return !isHeic(f);}); }
+    if (!files.length) return;
+
+    uploadMsg.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;padding:.5rem 0"><span class="mini-spin"></span> Loading '+files.length+' photo'+(files.length>1?'s':'')+'&hellip;</div>';
+
+    // Load all files into memory first
+    var loaded = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (f.size > 20*1024*1024) { continue; }
+      try {
+        var mime = (f.type && f.type.startsWith("image/")) ? f.type : "image/jpeg";
+        var b64  = await fileToBase64(f);
+        await verifyImage("data:"+mime+";base64,"+b64);
+        loaded.push({b64:b64, mime:mime, name:f.name});
+      } catch(e) { /* skip unreadable files */ }
+    }
+
+    if (!loaded.length) { uploadMsg.innerHTML='<div class="err">No valid images could be loaded.</div>'; return; }
+
+    // If only 1 photo, put it in the main slot directly — no need for AI assignment
+    if (loaded.length === 1) {
+      images["main"] = {b64:loaded[0].b64, mime:loaded[0].mime, label:"Main photo", aiAssigned:false};
+      renderSlots();
+      uploadMsg.innerHTML = '<div class="ok">&#10003; 1 photo added to main slot.</div>';
+      return;
+    }
+
+    // Multiple photos — ask Claude to assign each to the best slot
+    uploadMsg.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;padding:.5rem 0"><span class="mini-spin"></span> Sorting photos into slots&hellip;</div>';
+
+    try {
+      // Compress images for AI analysis — Claude doesn't need full resolution to sort.
+      // 800px keeps the payload small (7 photos ≈ 700KB total vs 40MB+ uncompressed)
+      var analysisImages = await Promise.all(loaded.map(function(img) {
+        return compressImage(img.b64, img.mime, 800, 0.75);
+      }));
+
+      var assignContent = [];
+      analysisImages.forEach(function(compressedB64, idx){
+        assignContent.push({type:"text", text:"[Photo "+(idx+1)+" — filename: "+esc(loaded[idx].name)+"]"});
+        assignContent.push({type:"image", source:{type:"base64", media_type:"image/jpeg", data:compressedB64}});
+      });
+
+      var slotList = currentSlots.map(function(s){
+        return '"'+s.id+'" ('+s.label+': '+s.sub+(s.required?' — required':'')+')';
+      }).join(", ");
+
+      assignContent.push({type:"text", text:
+        "I have "+(loaded.length)+" photos of a second-hand item. "
+        +"Assign each photo to the most appropriate slot from this list: "+slotList+". "
+        +"Rules: each slot can only be assigned ONE photo (choose the best fit). "
+        +"Label/tag photos should always go to the 'label' slot if available. "
+        +"Return ONLY valid JSON with key 'assignments': array of objects with "
+        +"\"photo_index\" (0-based integer), "
+        +"\"slot_id\" (string matching one of the slot IDs above), "
+        +"\"confidence\" (\"high\", \"medium\", or \"low\"), "
+        +"\"reason\" (one short phrase e.g. 'side profile visible', 'size label clearly shown'). "
+        +"If a photo doesn't clearly fit any slot, assign it to whichever empty slot would benefit most from an extra angle. "
+        +"Do not leave any photos unassigned unless there are more photos than slots."
+      });
+
+      var raw = await callClaude([{role:"user", content:assignContent}],
+        "You are a photo sorting expert for second-hand item listings. Assign photos to slots accurately. Return only valid JSON.");
+      var result = parseJSON(raw);
+      var assignments = result.assignments || [];
+
+      // Apply assignments — skip if slot already filled (first assignment wins)
+      var assignedCount = 0;
+      assignments.forEach(function(a){
+        if (a.photo_index >= loaded.length) return;
+        var slotId = a.slot_id;
+        // Check slot exists in current layout
+        var slotExists = currentSlots.some(function(s){return s.id===slotId;});
+        if (!slotExists) return;
+        if (images[slotId]) return; // slot already filled, skip
+        var photo = loaded[a.photo_index];
+        images[slotId] = {
+          b64: photo.b64,
+          mime: photo.mime,
+          label: currentSlots.find(function(s){return s.id===slotId;}).label,
+          aiAssigned: true,
+          confidence: a.confidence || "medium",
+          reason: a.reason || ""
+        };
+        assignedCount++;
+      });
+
+      renderSlots();
+
+      var lowConf = Object.values(images).filter(function(v){return v.aiAssigned && v.confidence==="low";}).length;
+      var msg = '<div class="ok">&#10003; '+assignedCount+' photo'+(assignedCount!==1?'s':'')+' sorted into slots automatically.';
+      if (lowConf > 0) msg += ' <strong>'+lowConf+' slot'+(lowConf>1?'s':'')+' flagged as low confidence</strong> — please check these.';
+      msg += ' Blue <strong>AI</strong> badges show auto-assigned photos. Click any slot to replace it.</div>';
+      uploadMsg.innerHTML = msg;
+
+    } catch(e) {
+      // AI assignment failed — fall back to filling slots in order
+      loaded.forEach(function(photo, idx){
+        if (idx >= currentSlots.length) return;
+        var slot = currentSlots[idx];
+        if (!images[slot.id]) {
+          images[slot.id] = {b64:photo.b64, mime:photo.mime, label:slot.label, aiAssigned:false};
+        }
+      });
+      renderSlots();
+      uploadMsg.innerHTML = '<div class="warn">&#9888; Auto-sort unavailable — photos placed in order. Please review slots. ('+esc(e.message)+')</div>';
+    }
+  }
+
+  // ── SINGLE SLOT CLICK ─────────────────────────────────────────────────────
+  fileInput.addEventListener("change", async function(e) {
+    var files = Array.from(e.target.files||[]);
+    fileInput.value = "";
+    if (!files.length || !activeSlotId) return;
+    var f = files[0];
+    if (isHeic(f)) { showHeicModal([f.name]); return; }
+    if (f.size > 20*1024*1024) { uploadMsg.innerHTML='<div class="err">File too large (max 20MB)</div>'; return; }
+    try {
+      var mime = (f.type && f.type.startsWith("image/")) ? f.type : "image/jpeg";
+      var b64  = await fileToBase64(f);
+      await verifyImage("data:"+mime+";base64,"+b64);
+      var slotDef = currentSlots.find(function(s){return s.id===activeSlotId;});
+      images[activeSlotId] = {b64:b64, mime:mime, label:slotDef?slotDef.label:"Photo", aiAssigned:false};
+      renderSlots();
+      uploadMsg.innerHTML = "";
+    } catch(err) {
+      uploadMsg.innerHTML = '<div class="err">Could not load image: '+esc(err.message)+'</div>';
+    }
+    activeSlotId = null;
+  });
+
+  function isHeic(f){ var ext=(f.name||"").split(".").pop().toLowerCase(); var mime=(f.type||"").toLowerCase(); return ext==="heic"||ext==="heif"||mime.includes("heic")||mime.includes("heif"); }
+  function fileToBase64(file){ return new Promise(function(ok,fail){var fr=new FileReader();fr.onload=function(){ok(fr.result.split(",")[1]);};fr.onerror=fail;fr.readAsDataURL(file);}); }
+  function verifyImage(src){ return new Promise(function(ok,fail){var img=new Image();img.onload=ok;img.onerror=function(){fail(new Error("Not a valid image"));};img.src=src;}); }
+
+  function showHeicModal(names) {
+    var ex=document.getElementById("heicModal"); if(ex)ex.remove();
+    var m=document.createElement("div"); m.id="heicModal";
+    m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem";
+    m.innerHTML='<div style="background:#fff;border-radius:16px;padding:1.5rem;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+      +'<div style="font-size:28px;text-align:center;margin-bottom:.75rem">&#128247;</div>'
+      +'<h2 style="font-size:16px;font-weight:600;text-align:center;margin-bottom:.75rem">HEIC photo detected</h2>'
+      +'<div style="background:#f5f5f3;border-radius:10px;padding:.875rem;margin-bottom:.75rem">'
+      +'<strong style="font-size:12px">&#11088; Permanent fix</strong><br>'
+      +'<span style="font-size:13px">iPhone: <strong>Settings &rarr; Camera &rarr; Formats &rarr; Most Compatible</strong></span></div>'
+      +'<div style="background:#eff6ff;border-radius:10px;padding:.875rem;margin-bottom:1rem">'
+      +'<strong style="font-size:12px">&#128259; Convert now</strong><br>'
+      +'<a href="https://heictojpg.com" target="_blank" style="font-size:13px;color:#1d4ed8">heictojpg.com</a>'
+      +' — free, no sign-up</div>'
+      +'<button onclick="document.getElementById(\'heicModal\').remove()" style="width:100%;padding:9px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">Got it</button></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click",function(e){if(e.target===m)m.remove();});
+  }
+
+  // Render initial slots and guide
+  renderSlots();
+  renderSlotGuide();
+
+  // ── STEPS ─────────────────────────────────────────────────────────────────
+  function setStep(n) {
+    ["s1","s2","s3","s4","s5"].forEach(function(id,i){
+      document.getElementById(id).className="step"+(i+1===n?" active":i+1<n?" done":"");
+    });
+  }
+
+  // ── API ───────────────────────────────────────────────────────────────────
+  async function callClaude(messages, system, useSearch) {
+    // Calls go through the gated Railway proxy — the Anthropic key lives on the
+    // server, never in the browser. Auth.fetch attaches the family session token.
+    var body = { model: MODEL, max_tokens: 1500, messages: messages };
+    if (system)    body.system = system;
+    if (useSearch) body.tools = [{ type:"web_search_20250305", name:"web_search" }];
+
+    var res = await Auth.fetch("/ai/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok){ var e=await res.json().catch(function(){return{};}); throw new Error(e.error?e.error.message:"API error "+res.status); }
+    var d = await res.json();
+
+    // If web search paused for tool results, feed a placeholder back and let the
+    // built-in server-side search tool finish.
+    if (useSearch && d.stop_reason === "tool_use") {
+      var toolUseBlocks    = d.content.filter(function(b){return b.type==="tool_use";});
+      var toolResultBlocks = toolUseBlocks.map(function(b){
+        return {type:"tool_result", tool_use_id:b.id, content:"Search completed."};
+      });
+      var followUpMessages = messages.concat([
+        {role:"assistant", content:d.content},
+        {role:"user",      content:toolResultBlocks}
+      ]);
+      var body2 = { model:MODEL, max_tokens:1500, messages:followUpMessages, tools:[{type:"web_search_20250305",name:"web_search"}] };
+      if (system) body2.system = system;
+      var res2 = await Auth.fetch("/ai/messages", {
+        method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body2)
+      });
+      if (!res2.ok){ var e2=await res2.json().catch(function(){return{};}); throw new Error(e2.error?e2.error.message:"API error "+res2.status); }
+      d = await res2.json();
+    }
+
+    return d.content.filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("\n");
+  }
+
+  // Robustly extract JSON from a response that may contain prose around it.
+  // Tries in order: strip fences → find first {...} block → find first [...] block.
+  function parseJSON(raw) {
+    // 1. Strip markdown code fences
+    var cleaned = raw.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+
+    // 2. Try parsing the cleaned string directly
+    try { return JSON.parse(cleaned); } catch(e1) {}
+
+    // 3. Find the first complete {...} JSON object in the string
+    var objStart = cleaned.indexOf("{");
+    if (objStart !== -1) {
+      // Walk to find the matching closing brace
+      var depth=0, inStr=false, esc=false;
+      for (var i=objStart; i<cleaned.length; i++) {
+        var ch=cleaned[i];
+        if (esc){esc=false;continue;}
+        if (ch==="\\"&&inStr){esc=true;continue;}
+        if (ch==='"'){inStr=!inStr;continue;}
+        if (inStr)continue;
+        if (ch==="{")depth++;
+        else if (ch==="}"){depth--;if(depth===0){try{return JSON.parse(cleaned.slice(objStart,i+1));}catch(e2){}break;}}
+      }
+    }
+
+    // 4. Find the first complete [...] JSON array
+    var arrStart = cleaned.indexOf("[");
+    if (arrStart !== -1) {
+      var depth2=0, inStr2=false, esc2=false;
+      for (var j=arrStart; j<cleaned.length; j++) {
+        var ch2=cleaned[j];
+        if (esc2){esc2=false;continue;}
+        if (ch2==="\\"&&inStr2){esc2=true;continue;}
+        if (ch2==='"'){inStr2=!inStr2;continue;}
+        if (inStr2)continue;
+        if (ch2==="[")depth2++;
+        else if (ch2==="]"){depth2--;if(depth2===0){try{return JSON.parse(cleaned.slice(arrStart,j+1));}catch(e3){}break;}}
+      }
+    }
+
+    // 5. Nothing worked — throw a clear error
+    throw new Error("Could not extract JSON from response. Raw response started with: "+cleaned.substring(0,80));
+  }
+
+  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+  // ── STEP 1: IDENTIFY ──────────────────────────────────────────────────────
+  window.identify = async function() {
+    var btn=document.getElementById("btnIdentify"); btn.disabled=true;
+    uploadMsg.innerHTML='<div class="loading"><div class="spinner"></div><p>Analysing photos&hellip;</p></div>';
+    try {
+      // Build image content — compress before sending (label photos get higher res for readability)
+      var content = [];
+      var slotsWithImages = currentSlots.filter(function(slot){ return images[slot.id]; });
+      var compressed = await Promise.all(slotsWithImages.map(function(slot) {
+        // Label photos need more detail to read sizes — 1200px; others 800px
+        var targetW = (slot.id === 'label' || slot.label.toLowerCase().includes('label')) ? 1200 : 800;
+        return compressImage(images[slot.id].b64, images[slot.id].mime, targetW, 0.8);
+      }));
+      slotsWithImages.forEach(function(slot, i) {
+        content.push({type:"text",text:"["+slot.label+" photo:]"});
+        content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:compressed[i]}});
+      });
+      content.push({type:"text",text:
+        "Identify this second-hand item from the labelled photos. Pay special attention to any label photos for size, brand, model and country of manufacture. "
+        +"The current year is 2026. "
+        +"Return ONLY valid JSON (no markdown) with: "
+        +"name, brand (or empty), model (or empty), "
+        +"category (one of: Clothing, Footwear, Electronics, Cameras & Photography, Mobile Phones, Audio & HiFi, "
+        +"Sporting Goods, Outdoor & Camping, Cycling, Toys & Games, Baby & Kids, Books, Music, Films & DVDs, "
+        +"Video Games, Home & Garden, Furniture, Kitchen & Dining, Jewellery & Watches, Health & Beauty, "
+        +"Tools, Vehicle Parts, Collectibles, Antiques, Art, Other), "
+        +"subcategory, color, material, "
+        +"size (read directly from label if visible — include UK/EU/US sizing if shown), "
+        +"gender (Men/Women/Unisex/Boys/Girls/Baby — clothing/footwear only, else empty), "
+        +"country_of_manufacture (if visible on label, else empty), "
+        +"approximate_age (state the year if known, e.g. '2024', or describe relative to 2026 e.g. '2 years old'), "
+        +"key_specs (1-2 sentences — include anything read from labels such as materials, certifications, model numbers), "
+        +"id_confidence (high/medium/low), id_notes (uncertainties or empty)."
+      });
+
+      var raw=await callClaude([{role:"user",content:content}],
+        "You are a product identification expert for second-hand selling. Read all label photos carefully for exact size, brand, model and origin. Return only valid JSON.");
+      itemInfo=parseJSON(raw);
+      uploadMsg.innerHTML="";
+
+      // Update photo slots for the identified category
+      // Must await this because it does async AI re-assignment of photos to new slots
+      if (itemInfo.category && SLOT_TEMPLATES[itemInfo.category]) {
+        await updatePhotoGuide(itemInfo.category);
+      }
+
+      buildConfirm();
+      setStep(2);
+      document.getElementById("p2").style.display="block";
+      document.getElementById("p2").scrollIntoView({behavior:"smooth",block:"start"});
+    } catch(e) {
+      uploadMsg.innerHTML='<div class="err">'+esc(e.message)+'</div>';
+      btn.disabled=false;
+    }
+  };
+
+  // ── STEP 2: CONFIRM ───────────────────────────────────────────────────────
+  var CATS = {
+    "Clothing":["Jeans","T-Shirts","Shirts","Jackets","Coats","Hoodies & Sweatshirts","Jumpers & Knitwear","Dresses","Skirts","Shorts","Trousers","Suits & Blazers","Sportswear","Swimwear","Other Clothing"],
+    "Footwear":["Trainers","Boots","Sandals","Heels","Loafers","Formal Shoes","Slippers","Flip Flops","Other Footwear"],
+    "Electronics":["Laptops","Tablets","Desktop Computers","Smart Watches","Monitors","Printers","Networking","Other Electronics"],
+    "Cameras & Photography":["Digital Cameras","Film Cameras","Camera Lenses","Tripods & Accessories","Drones","Other Camera Gear"],
+    "Mobile Phones":["iPhones","Samsung Phones","Google Pixel","Other Android","Phone Accessories","Other Phones"],
+    "Audio & HiFi":["Headphones","Earbuds","Portable Speakers","Hi-Fi Speakers","Amplifiers","Turntables","Other Audio"],
+    "Sporting Goods":["Football","Running","Golf","Tennis","Gym & Fitness","Swimming","Skiing","Rugby","Cricket","Other Sport"],
+    "Outdoor & Camping":["Tents","Sleeping Bags","Backpacks","Outdoor Clothing","Hiking Footwear","Camping Accessories","Other Outdoor"],
+    "Cycling":["Road Bikes","Mountain Bikes","Hybrid Bikes","Electric Bikes","Helmets","Cycling Clothing","Bike Accessories","Other Cycling"],
+    "Toys & Games":["Board Games","Action Figures","Dolls","Building Sets","Puzzles","Card Games","Outdoor Toys","Other Toys"],
+    "Baby & Kids":["Baby Clothing","Kids Clothing","Pushchairs","Car Seats","Nursery","Baby Toys","Other Baby"],
+    "Books":["Fiction","Non-Fiction","Children's Books","Textbooks","Comics","Other Books"],
+    "Music":["CDs","Vinyl Records","Cassettes","Instruments","Sheet Music","Other Music"],
+    "Films & DVDs":["DVDs","Blu-Ray","4K UHD","Box Sets","Other Films"],
+    "Video Games":["PlayStation","Xbox","Nintendo","PC Games","Retro","Gaming Accessories","Other Gaming"],
+    "Home & Garden":["Bedding","Curtains","Rugs","Lighting","Garden Furniture","Plants","Other Home"],
+    "Furniture":["Sofas","Beds & Frames","Tables","Chairs","Storage","Wardrobes","Other Furniture"],
+    "Kitchen & Dining":["Cookware","Appliances","Cutlery","Crockery","Glassware","Other Kitchen"],
+    "Jewellery & Watches":["Necklaces","Bracelets","Rings","Earrings","Watches","Other Jewellery"],
+    "Health & Beauty":["Skincare","Haircare","Makeup","Fragrances","Electric Grooming","Other Health"],
+    "Tools":["Power Tools","Hand Tools","Garden Tools","Measuring","Tool Storage","Other Tools"],
+    "Vehicle Parts":["Car Parts","Motorcycle Parts","Tyres","Car Accessories","Other Vehicle"],
+    "Collectibles":["Coins","Stamps","Sports Memorabilia","Trading Cards","Vintage Advertising","Other Collectibles"],
+    "Antiques":["Furniture","Ceramics","Glassware","Clocks","Maps & Prints","Other Antiques"],
+    "Art":["Paintings","Prints","Photography","Sculpture","Other Art"],
+    "Other":["Other"]
+  };
+  function subOpts(cat,cur){return(CATS[cat]||CATS["Other"]).map(function(s){return'<option value="'+esc(s)+'"'+(s===cur?' selected':'')+'>'+esc(s)+'</option>';}).join("");}
+
+  function buildConfirm() {
+    var conf=itemInfo.id_confidence||"medium";
+    var confBg=conf==="high"?"#f0fdf4":conf==="low"?"#fef2f2":"#fffbeb";
+    var confCol=conf==="high"?"#16a34a":conf==="low"?"#dc2626":"#d97706";
+    var confMsg=conf==="high"?"High confidence identification — looks good"
+               :conf==="low"?"Low confidence — please review all fields carefully"
+                             :"Medium confidence — please verify the details";
+    var catOpts=Object.keys(CATS).map(function(c){return'<option value="'+esc(c)+'"'+(c===itemInfo.category?' selected':'')+'>'+esc(c)+'</option>';}).join("");
+
+    var html='<div class="card"><span class="lbl">Confirm item details</span>'
+      +'<div class="conf-row" style="background:'+confBg+'"><span class="conf-dot" style="background:'+confCol+'"></span><span style="color:'+confCol+';font-weight:500">'+esc(confMsg)+'</span></div>'
+      +(itemInfo.id_notes?'<p class="note">&#9432; '+esc(itemInfo.id_notes)+'</p>':"")
+      +'<p class="note">These details drive the condition questions and final listing. Correct anything before continuing.</p>'
+
+      +'<div class="confirm-grid">'
+      +'<div class="cf"><label>Item name</label><input type="text" id="cf_name" value="'+esc(itemInfo.name||"")+'"></div>'
+      +'<div class="cf"><label>Brand</label><input type="text" id="cf_brand" value="'+esc(itemInfo.brand||"")+'"></div>'
+      +'</div>'
+
+      +'<div class="confirm-grid">'
+      +'<div class="cf"><label>Category</label><select id="cf_cat" onchange="window.updateSubs()"><option value="">Select&hellip;</option>'+catOpts+'</select></div>'
+      +'<div class="cf"><label>Subcategory</label><select id="cf_sub">'+subOpts(itemInfo.category,itemInfo.subcategory)+'</select></div>'
+      +'</div>'
+
+      +'<div class="confirm-grid">'
+      +'<div class="cf"><label>Colour</label><input type="text" id="cf_color" value="'+esc(itemInfo.color||"")+'"></div>'
+      +'<div class="cf"><label>Material</label><input type="text" id="cf_material" value="'+esc(itemInfo.material||"")+'"></div>'
+      +'</div>'
+
+      +'<div class="confirm-grid">'
+      +'<div class="cf"><label>Size <span style="font-weight:400;text-transform:none;letter-spacing:0">(from label)</span></label><input type="text" id="cf_size" value="'+esc(itemInfo.size||"")+'" placeholder="e.g. M, EU42, 32W 32L"></div>'
+      +'<div class="cf"><label>Model / style</label><input type="text" id="cf_model" value="'+esc(itemInfo.model||"")+'"></div>'
+      +'</div>'
+
+      +'<div class="confirm-grid">'
+      +'<div class="cf"><label>Gender</label><select id="cf_gender">'
+      +['Men','Women','Unisex','Boys','Girls','Baby','N/A'].map(function(g){return'<option'+(g===(itemInfo.gender||'Unisex')?' selected':'')+'>'+g+'</option>';}).join("")
+      +'</select></div>'
+      +'<div class="cf"><label>Made in</label><input type="text" id="cf_origin" value="'+esc(itemInfo.country_of_manufacture||"")+'"></div>'
+      +'</div>'
+
+      +'<div class="confirm-grid">'
+      +'<div class="cf"><label>Era / age</label><input type="text" id="cf_age" value="'+esc(itemInfo.approximate_age||"")+'"></div>'
+      +'<div class="cf"><label>Era source</label><input type="text" id="cf_specs" value="'+esc(itemInfo.key_specs||"")+'" placeholder="Key specs or label details"></div>'
+      +'</div>'
+
+      +'<div class="btn-row"><button class="btn btn-p" onclick="window.confirmItem()">&#10003; Confirm &amp; continue</button></div>'
+      +'</div>';
+
+    document.getElementById("p2").innerHTML=html;
+    if (conf!=="high") { ["cf_name","cf_brand","cf_cat","cf_sub"].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.add("hi");}); }
+  }
+
+  window.updateSubs=function(){var cat=document.getElementById("cf_cat").value;document.getElementById("cf_sub").innerHTML=subOpts(cat,"");};
+
+  window.confirmItem=function(){
+    function v(id){var el=document.getElementById(id);return el?el.value.trim():"";}
+    itemInfo.name=v("cf_name")||itemInfo.name;
+    itemInfo.brand=v("cf_brand"); itemInfo.category=v("cf_cat")||itemInfo.category;
+    itemInfo.subcategory=v("cf_sub")||itemInfo.subcategory; itemInfo.color=v("cf_color");
+    itemInfo.material=v("cf_material"); itemInfo.size=v("cf_size"); itemInfo.model=v("cf_model");
+    itemInfo.gender=v("cf_gender"); itemInfo.country_of_manufacture=v("cf_origin");
+    itemInfo.approximate_age=v("cf_age"); itemInfo.key_specs=v("cf_specs");
+    cond={};
+    buildCondition();
+    setStep(3);
+    document.getElementById("p3").style.display="block";
+    document.getElementById("p3").scrollIntoView({behavior:"smooth",block:"start"});
+  };
+
+  // ── STEP 3: CONDITION ─────────────────────────────────────────────────────
+  async function buildCondition() {
+    var p3=document.getElementById("p3");
+    p3.innerHTML='<div class="loading"><div class="spinner"></div><p>Assessing condition from your photos&hellip;</p><small>Pre-filling answers where visible</small></div>';
+    try {
+      // Include the uploaded images (compressed) so Claude can assess condition visually
+      var content=[];
+      var condSlots = currentSlots.filter(function(slot){ return images[slot.id]; });
+      var condCompressed = await Promise.all(condSlots.map(function(slot) {
+        return compressImage(images[slot.id].b64, images[slot.id].mime, 1000, 0.8);
+      }));
+      condSlots.forEach(function(slot, i){
+        content.push({type:"text",text:"["+slot.label+":]"});
+        content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:condCompressed[i]}});
+      });
+      content.push({type:"text",text:
+        "Based on the photos above, generate condition assessment questions for this second-hand "
+        +[itemInfo.brand,itemInfo.name,itemInfo.model].filter(Boolean).join(" ")
+        +" ("+itemInfo.category+" > "+itemInfo.subcategory
+        +(itemInfo.gender&&itemInfo.gender!=="N/A"?", "+itemInfo.gender:"")+"). "
+        +"For each question, also provide your best answer based on what is VISIBLE in the photos. "
+        +"Only pre-answer if you can clearly see the answer — leave pre_answer as null if uncertain. "
+        +"Return ONLY valid JSON with key condition_questions: array of 5-6 objects each with: "
+        +"\"question\" (string), "
+        +"\"options\" (array of 4-5 strings ordered best to worst condition), "
+        +"\"pre_answer\" (string matching one of the options exactly, or null if not visible in photos), "
+        +"\"pre_answer_reason\" (very brief reason e.g. 'no box visible in photos', 'soles look clean', or null). "
+        +"Item-specific guidance: "
+        +"Footwear: sole wear (examine sole photo carefully), upper condition, lining/insole, laces present, original box included. "
+        +"Clothing: overall condition, visible fading/marks/pilling, fastenings working, any defects. "
+        +"Electronics: functional status (can only note if powered on), screen/body cosmetics, what accessories are visible. "
+        +"Always include a question about what is included with the item — only mark items as included if clearly visible in photos."
+      });
+
+      var raw=await callClaude([{role:"user",content:content}],
+        "You are a second-hand product condition expert. Assess condition carefully from photos. Only pre-fill answers when clearly visible. Return only valid JSON.");
+      var parsed=parseJSON(raw);
+      var qs=parsed.condition_questions||parsed||[];
+      itemInfo.condition_questions=qs;
+
+      // Pre-populate cond object with any answers Claude could determine
+      qs.forEach(function(q,i){
+        if(q.pre_answer){ cond["q"+i]=q.pre_answer; }
+      });
+
+      var html='<div class="card">'
+        +'<span class="lbl">Condition &mdash; '+esc(itemInfo.name)+'</span>'
+        +'<p style="font-size:12px;color:#555;margin-bottom:1rem;padding:.625rem .875rem;background:#eff6ff;border-radius:8px;line-height:1.5">'
+        +'&#128247; Fields marked <strong style="color:#1d4ed8">pre-filled from photos</strong> — review and correct anything that looks wrong.</p>';
+
+      qs.forEach(function(q,i){
+        var prefilled = !!q.pre_answer;
+        html+='<div class="qi">';
+        html+='<label>'+esc(q.question);
+        if(prefilled){
+          html+=' <span style="font-size:10px;font-weight:600;color:#1d4ed8;background:#eff6ff;padding:1px 6px;border-radius:10px;margin-left:4px">&#128247; from photo</span>';
+        }
+        html+='</label>';
+
+        if(q.options&&q.options.length){
+          html+='<select id="q'+i+'" style="'+(prefilled?'border-color:#1d4ed8;background:#f8fbff;':'')+'">'+
+            '<option value="">Select&hellip;</option>';
+          q.options.forEach(function(o){
+            html+='<option value="'+esc(o)+'"'+(o===q.pre_answer?' selected':'')+'>'+esc(o)+'</option>';
+          });
+          html+='</select>';
+          if(prefilled&&q.pre_answer_reason){
+            html+='<span style="font-size:11px;color:#6b7280;margin-top:3px;display:block">&#9432; '+esc(q.pre_answer_reason)+'</span>';
+          }
+        } else {
+          html+='<input type="text" id="q'+i+'" value="'+esc(q.pre_answer||"")+'" placeholder="Type answer&hellip;" '+(prefilled?'style="border-color:#1d4ed8;background:#f8fbff;"':'')+'>';
+          if(prefilled&&q.pre_answer_reason){
+            html+='<span style="font-size:11px;color:#6b7280;margin-top:3px;display:block">&#9432; '+esc(q.pre_answer_reason)+'</span>';
+          }
+        }
+        html+='</div>';
+      });
+
+      html+='<div class="btn-row"><button class="btn btn-p" onclick="window.runPricing()">&#163; Research pricing</button></div></div>';
+      p3.innerHTML=html;
+
+      // Attach change listeners
+      qs.forEach(function(q,i){
+        var el=document.getElementById("q"+i); if(!el)return;
+        el.addEventListener("change",function(){cond["q"+i]=el.value;});
+        el.addEventListener("input", function(){cond["q"+i]=el.value;});
+        // Initialise cond from pre-filled selects
+        if(el.value) cond["q"+i]=el.value;
+      });
+
+    } catch(e) {
+      p3.innerHTML='<div class="err">'+esc(e.message)+'</div>'
+        +'<div class="btn-row"><button class="btn btn-p" onclick="window.runPricing()">Skip to pricing</button></div>';
+    }
+  }
+
+  // ── STEP 4: PRICING ───────────────────────────────────────────────────────
+  window.runPricing=async function(){
+    setStep(4);
+    var p4=document.getElementById("p4"); p4.style.display="block";
+    p4.innerHTML='<div class="loading"><div class="spinner"></div><p>Searching eBay, Vinted &amp; retail prices&hellip;</p><small>Takes 20&ndash;30 seconds</small></div>';
+    p4.scrollIntoView({behavior:"smooth",block:"start"});
+    var cs=Object.values(cond).filter(Boolean).join(", ");
+    var desc=[itemInfo.brand,itemInfo.name,itemInfo.model,itemInfo.color,itemInfo.size].filter(Boolean).join(" ");
+
+    var pricingPrompt='Search for UK second-hand prices for: "'+desc+'". '
+      +'Category: '+itemInfo.category+' > '+itemInfo.subcategory+'. '
+      +'Condition: '+(cs||"good used condition")+'. '
+      +'Search eBay UK completed/sold listings, eBay UK active listings, Vinted UK, and new retail price. '
+      +'After searching, respond with ONLY a JSON object — no introduction, no explanation, no markdown. '
+      +'The JSON must have exactly these keys: '
+      +'ebay_sold_avg (number in GBP or null), '
+      +'ebay_sold_range (string like "£20-£35" or null), '
+      +'ebay_current_avg (number or null), '
+      +'vinted_avg (number or null), '
+      +'retail_price (number or null), '
+      +'recommended_price (number), '
+      +'best_offer_floor (number), '
+      +'price_rationale (string, 1-2 sentences), '
+      +'confidence ("high", "medium", or "low"). '
+      +'Start your response with { and end with }. Do not write anything before or after the JSON.';
+
+    var pricingSystem='You are a UK second-hand pricing expert. '
+      +'Use web search to find real current prices. '
+      +'Your response must be a single valid JSON object and nothing else. '
+      +'Do not include any text before the opening { or after the closing }.';
+
+    try {
+      var raw=await callClaude([{role:"user",content:pricingPrompt}],pricingSystem,true);
+
+      // Try to parse — if it fails, make one retry with an explicit correction prompt
+      var parsed;
+      try {
+        parsed=parseJSON(raw);
+      } catch(parseErr) {
+        p4.innerHTML='<div class="loading"><div class="spinner"></div><p>Refining results&hellip;</p></div>';
+        var retryRaw=await callClaude([
+          {role:"user",    content:pricingPrompt},
+          {role:"assistant",content:raw},
+          {role:"user",    content:'Your previous response was not valid JSON. Please respond again with ONLY the JSON object — starting with { and ending with }. No other text.'}
+        ],pricingSystem,false);
+        parsed=parseJSON(retryRaw);
+      }
+
+      priceData=parsed;
+      var c=priceData.confidence||"medium";
+      var html='<div class="price-hi"><div>'
+        +'<div style="font-size:11px;color:#555;margin-bottom:2px">Recommended listing price</div>'
+        +'<div class="price-main">&pound;'+priceData.recommended_price+'</div>'
+        +'<div class="price-floor">Best offer floor: &pound;'+priceData.best_offer_floor+'</div></div>'
+        +'<span class="bdg '+(c==="high"?"bdg-g":"bdg-a")+'">'+c+' confidence</span></div>'
+        +'<div class="card"><span class="lbl">Price sources</span>';
+      if(priceData.ebay_sold_avg)    html+='<div class="pr"><span class="ps">eBay sold (avg)</span><span class="pv">&pound;'+priceData.ebay_sold_avg+'</span></div>';
+      if(priceData.ebay_sold_range)  html+='<div style="font-size:11px;color:#aaa;padding:2px 0 6px">Range: '+esc(priceData.ebay_sold_range)+'</div>';
+      if(priceData.ebay_current_avg) html+='<div class="pr"><span class="ps">eBay live</span><span class="pv">&pound;'+priceData.ebay_current_avg+'</span></div>';
+      if(priceData.vinted_avg)       html+='<div class="pr"><span class="ps">Vinted</span><span class="pv">&pound;'+priceData.vinted_avg+'</span></div>';
+      if(priceData.retail_price)     html+='<div class="pr"><span class="ps">New / RRP</span><span class="pv">&pound;'+priceData.retail_price+'</span></div>';
+      if(priceData.price_rationale)  html+='<div style="margin-top:.625rem;font-size:12px;color:#555;padding-top:.625rem;border-top:1px solid #f0f0ec">'+esc(priceData.price_rationale)+'</div>';
+      html+='</div><div class="btn-row"><button class="btn btn-p" onclick="window.genListing()">&#128203; Generate listing</button></div>';
+      p4.innerHTML=html;
+    } catch(e) {
+      p4.innerHTML='<div class="err"><strong>Pricing search failed.</strong><br>'+esc(e.message)+'</div>'
+        +'<div class="btn-row">'
+        +'<button class="btn btn-p" onclick="window.runPricing()">&#8635; Try again</button>'
+        +'<button class="btn" onclick="window.genListing()">Continue without pricing</button>'
+        +'</div>';
+    }
+  };
+
+  // ── STEP 5: LISTING ───────────────────────────────────────────────────────
+  window.genListing=async function(){
+    setStep(5);
+    var p5=document.getElementById("p5"); p5.style.display="block";
+    p5.innerHTML='<div class="loading"><div class="spinner"></div><p>Writing your eBay listing&hellip;</p></div>';
+    p5.scrollIntoView({behavior:"smooth",block:"start"});
+    var cs=Object.values(cond).filter(Boolean).join("; ");
+    var pc=priceData?"Recommended price: £"+priceData.recommended_price+". Best offer floor: £"+priceData.best_offer_floor+".":"No pricing data.";
+    try {
+      var raw=await callClaude([{role:"user",content:
+        "Write a complete eBay UK listing for:\n"
+        +"Item: "+[itemInfo.brand,itemInfo.name,itemInfo.model].filter(Boolean).join(" ")+"\n"
+        +"Category: "+[itemInfo.category,itemInfo.subcategory].filter(Boolean).join(" > ")+"\n"
+        +"Colour: "+(itemInfo.color||"unknown")
+        +(itemInfo.size?", Size: "+itemInfo.size:"")
+        +(itemInfo.gender&&itemInfo.gender!=="N/A"?", Gender: "+itemInfo.gender:"")
+        +(itemInfo.country_of_manufacture?", Made in: "+itemInfo.country_of_manufacture:"")
+        +", Material: "+(itemInfo.material||"n/a")
+        +", Era: "+(itemInfo.approximate_age||"unknown")+"\n"
+        +"Key specs/label info: "+(itemInfo.key_specs||"none")+"\n"
+        +"Condition answers from seller: "+(cs||"good used condition")+"\n"+pc+"\n\n"
+        +"Return ONLY valid JSON with these exact keys:\n"
+        +"title: max 80 chars, keyword-rich for eBay UK search — include brand, model, size, gender, colour where relevant. No punctuation padding.\n"
+        +"description: 150-250 words formatted with double newlines (\\n\\n) between paragraphs. Structure: para 1 = item overview, para 2 = condition details (honest, based on condition answers above — do NOT say New or Like New unless condition answers clearly indicate this), para 3 = what's included and postage note.\n"
+        +"ebay_condition_enum: MUST be exactly one of these enum strings based on the condition answers above — "
+        +"'NEW' (unused, tags/box present), "
+        +"'LIKE_NEW' (unused, no tags/box), "
+        +"'USED_EXCELLENT' (light use, no visible flaws), "
+        +"'USED_VERY_GOOD' (minor signs of use), "
+        +"'USED_GOOD' (normal use, some wear), "
+        +"'USED_ACCEPTABLE' (heavy use, significant wear), "
+        +"'FOR_PARTS_OR_NOT_WORKING' (damaged or non-functional). "
+        +"If the item shows ANY wear, marks or use, do NOT use NEW or LIKE_NEW. For used footwear or clothing with visible wear, use USED_EXCELLENT at minimum.\n"
+        +"category_suggestion: eBay UK category path\n"
+        +"postage_suggestion: recommended postage method for this item type and size\n"
+        +"seller_notes: 1-2 practical eBay selling tips for this item type"
+      }],"You are an expert eBay UK listing writer. Honest, clear, search-optimised. Condition must reflect actual item use — if the seller describes wear, marks or normal use, the item is NOT New. Return only valid JSON.");
+      var L=parseJSON(raw); window._L=L;
+
+      // Format description — convert \n\n to paragraphs for display and eBay HTML
+      var descRaw  = L.description || "";
+      var descHtml = descRaw.split(/\n\n+/).map(function(p){ return '<p>' + p.trim().replace(/\n/g,'<br>') + '</p>'; }).join('');
+      L.descriptionHtml = descHtml; // store HTML version for eBay
+
+      var html='<div class="card">'
+        +'<div class="cb"><span class="lbl" style="margin:0">Listing title</span><button class="btn btn-sm" onclick="cp(\'tEl\',\'f1\')">Copy</button></div>'
+        +'<div id="tEl" style="font-size:15px;font-weight:500;line-height:1.5">'+esc(L.title||"")+'</div>'
+        +'<div class="cc">'+(L.title||"").length+'/80 chars &bull; Condition: '+esc(L.ebay_condition_label||"Good")+'</div>'
+        +'<span id="f1" class="flash" style="display:none">Copied!</span></div>'
+        +'<div class="card"><div class="cb"><span class="lbl" style="margin:0">Description</span><button class="btn btn-sm" onclick="cp(\'dEl\',\'f2\')">Copy</button></div>'
+        +'<div id="dEl" class="lo" style="line-height:1.7">'+descHtml+'</div>'
+        +'<span id="f2" class="flash" style="display:none">Copied!</span></div>'
+        +'<div class="card"><span class="lbl">Listing details</span>'
+        +'<div class="pr"><span class="ps">Asking price</span><span class="pv" style="color:#16a34a">'+(priceData?'&pound;'+priceData.recommended_price:'&mdash;')+'</span></div>'
+        +'<div class="pr"><span class="ps">Best offer floor</span><span class="pv">'+(priceData?'&pound;'+priceData.best_offer_floor:'&mdash;')+'</span></div>'
+        +'<div class="pr"><span class="ps">eBay category</span><span class="pv" style="font-size:12px;text-align:right;max-width:220px">'+esc(L.category_suggestion||itemInfo.category||'&mdash;')+'</span></div>'
+        +'<div class="pr"><span class="ps">Postage</span><span class="pv" style="font-size:12px;text-align:right;max-width:220px">'+esc(L.postage_suggestion||'Royal Mail 2nd Class')+'</span></div>'
+        +'<div class="pr" style="align-items:center"><span class="ps">Item condition <span style="font-size:10px;color:#4a6cf7;font-weight:600">edit if wrong</span></span>'
+        +'<select id="conditionOverride" style="font-size:12px;padding:4px 8px;border:1px solid #4a6cf7;border-radius:6px;background:#f8f9ff;color:#1a1a1a">'
+        +[
+          {label:'New with tags / box',          val:'NEW'},
+          {label:'New without tags / box',        val:'LIKE_NEW'},
+          {label:'Pre-owned — Excellent',         val:'USED_EXCELLENT'},
+          {label:'Pre-owned — Very Good',         val:'USED_VERY_GOOD'},
+          {label:'Pre-owned — Good',              val:'USED_GOOD'},
+          {label:'Pre-owned — Acceptable',        val:'USED_ACCEPTABLE'},
+          {label:'For parts or not working',      val:'FOR_PARTS_OR_NOT_WORKING'},
+        ].map(function(c){
+          return '<option value="'+c.val+'"'+(c.val===L.ebay_condition_enum?' selected':'')+'>'+c.label+'</option>';
+        }).join('')
+        +'</select></div>'
+        +'</div>'
+        +(L.seller_notes?'<div class="tips"><span class="lbl" style="color:#92400e">Seller tips</span><div style="font-size:13px;color:#78350f">'+esc(L.seller_notes)+'</div></div>':"")
+
+        // ── Preview section ────────────────────────────────────────────
+        +'<div class="card" style="border-color:#0f9d58">'
+        +'<span class="lbl" style="color:#0f9d58">&#128196; Preview listing</span>'
+        +'<p style="font-size:12px;color:#555;margin-bottom:.875rem;line-height:1.5">'
+        +'Generate a preview HTML file and save it to Google Drive. Review everything — including the exact condition eBay will use — before going live.</p>'
+        +'<div class="btn-row" style="margin-top:0">'
+        +'<button class="btn" style="background:#0f9d58;color:#fff;border-color:#0f9d58" onclick="previewListing()">&#128196; Save preview to Drive</button>'
+        +'</div>'
+        +'<div id="previewStatus" style="margin-top:.75rem"></div>'
+        +'</div>'
+        +'<div class="card" style="border-color:#4a6cf7">'
+        +'<span class="lbl" style="color:#1d4ed8">&#128279; Post to eBay</span>'
+        +'<p style="font-size:12px;color:#555;margin-bottom:.875rem;line-height:1.5">'
+        +'Review the title, description and price above, then click Post to eBay to publish this listing live on your eBay account. '
+        +'You can end the listing at any time from <a href="https://www.ebay.co.uk/sh/lst/active" target="_blank" style="color:#1d4ed8">Seller Hub &rarr; Active Listings</a>.</p>'
+        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:.875rem">'
+        +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">'
+        +'<input type="checkbox" id="confirmToggle" style="width:16px;height:16px;accent-color:#4a6cf7"> '
+        +'I\'ve reviewed the listing and I\'m ready to post it live on eBay</label>'
+        +'</div>'
+        +'<div class="btn-row" style="margin-top:0">'
+        +'<button class="btn btn-p" style="background:#4a6cf7;border-color:#4a6cf7" onclick="postToEbay()">&#128279; Post to eBay</button>'
+        +'</div>'
+        +'<div id="ebayPostStatus" style="margin-top:.75rem"></div>'
+        +'</div>'
+
+        // ── Copy / reset row ───────────────────────────────────────────
+        +'<div class="btn-row">'
+        +'<div id="sheetsStatus" style="font-size:13px"></div>'
+        +'</div>'
+        +'<div class="btn-row">'
+        +'<button class="btn" onclick="cpFull()">&#128203; Copy full listing</button>'
+        +'<span id="ff" class="flash" style="display:none">Copied!</span>'
+        +'<span class="rl" onclick="resetAll()">&#8635; New item</span></div>';
+      p5.innerHTML=html;
+    } catch(e) {
+      p5.innerHTML='<div class="err">'+esc(e.message)+'</div>';
+    }
+  };
+
+  // ── PREVIEW LISTING ────────────────────────────────────────────────────────
+  window.previewListing = async function() {
+    var statusEl = document.getElementById('previewStatus');
+    var L        = window._L;
+    if (!L)        { statusEl.innerHTML='<div class="err">Generate the listing first.</div>'; return; }
+    if (!priceData){ statusEl.innerHTML='<div class="warn">&#9888; Complete pricing step first.</div>'; return; }
+
+    statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+      + '<span class="mini-spin"></span> Generating preview and uploading to Drive&hellip;</div>';
+
+    // Read condition from dropdown
+    var condOverride = document.getElementById('conditionOverride');
+    var condEnum     = (condOverride && condOverride.value) ? condOverride.value : (L.ebay_condition_enum || 'USED_GOOD');
+
+    // Use already-uploaded Drive URLs if available, else empty
+    var imageUrls = window._lastDriveUrls || [];
+
+    var timestamp = new Date().toISOString().slice(0,10);
+    var safeName  = (itemInfo.name||'item').replace(/[^a-zA-Z0-9\s]/g,'').trim().substring(0,40);
+
+    try {
+      var res = await Auth.fetch('/preview/listing', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item:       itemInfo,
+          listing:    Object.assign({}, L, { ebay_condition_enum: condEnum }),
+          imageUrls:  imageUrls,
+          price:      priceData.recommended_price,
+          folderName: timestamp + ' \u2014 ' + safeName,
+        })
+      });
+      var data = await res.json();
+
+      if (data.ok && data.url) {
+        statusEl.innerHTML = '<div class="ok" style="line-height:1.8">'
+          + '&#10003; <strong>Preview saved to Drive!</strong><br>'
+          + '<a href="' + data.url + '" target="_blank" style="color:#0f9d58;font-weight:500">&#128196; Open preview &rarr;</a><br>'
+          + '<span style="font-size:11px;color:#555">Condition on eBay will be: <strong>' + esc(data.conditionLabel) + '</strong> '
+          + '(<code>' + esc(data.conditionEnum) + '</code>) &bull; Category ID: ' + esc(String(data.categoryId)) + '</span>'
+          + (data.driveError ? '<br><span style="font-size:11px;color:#f59e0b">&#9888; Drive upload failed — ' + esc(data.driveError) + '</span>' : '')
+          + '</div>';
+      } else if (data.html) {
+        // Drive failed — open in new tab directly
+        var blob = new Blob([data.html], {type:'text/html'});
+        var url  = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        statusEl.innerHTML = '<div class="warn">&#9888; Drive upload failed — preview opened in new tab instead. '
+          + 'Condition: <strong>' + esc(data.conditionLabel) + '</strong></div>';
+      } else {
+        statusEl.innerHTML = '<div class="err">&#9888; Preview failed: ' + esc(data.error||'unknown error') + '</div>';
+      }
+    } catch(e) {
+      statusEl.innerHTML = '<div class="err">&#9888; Preview error: ' + esc(e.message) + '</div>';
+    }
+  };
+
+  // ── POST TO EBAY ──────────────────────────────────────────────────────────
+  var ebayPostInProgress = false;
+
+  window.postToEbay = async function() {
+    if (ebayPostInProgress) return;
+
+    var confirmBox = document.getElementById('confirmToggle');
+    if (!confirmBox || !confirmBox.checked) {
+      var statusEl = document.getElementById('ebayPostStatus');
+      if (statusEl) statusEl.innerHTML = '<div class="warn">&#9888; Please tick the confirmation box before posting.</div>';
+      return;
+    }
+
+    ebayPostInProgress = true;
+    var statusEl  = document.getElementById('ebayPostStatus');
+    var btn       = document.querySelector('[onclick="postToEbay()"]');
+    var L         = window._L;
+
+    btn.disabled = true;
+
+    if (!L) { statusEl.innerHTML='<div class="err">No listing data — please generate the listing first.</div>'; btn.disabled=false; ebayPostInProgress=false; return; }
+    if (!priceData) { statusEl.innerHTML='<div class="warn">&#9888; No pricing data. Please complete the pricing step first.</div>'; btn.disabled=false; ebayPostInProgress=false; return; }
+
+    // Read condition enum directly from dropdown — value IS the eBay enum string
+    var condOverride = document.getElementById('conditionOverride');
+    if (condOverride && condOverride.value) {
+      L.ebay_condition_enum = condOverride.value;
+    }
+    console.log('Posting with condition enum:', L.ebay_condition_enum);
+
+    // Deduplicate images by slot ID (each slot holds one photo)
+    // Also remove exact base64 duplicates using a longer fingerprint
+    var seen = new Set();
+    var uniqueImages = {};
+    Object.entries(images).forEach(function(entry) {
+      var slotId = entry[0], img = entry[1];
+      // Use 200 chars from middle of base64 to avoid JPEG header collision
+      // (all JPEGs share the same first ~20 chars: /9j/4AAQ...)
+      var mid = Math.floor(img.b64.length / 2);
+      var fingerprint = img.b64.substring(mid, mid + 200);
+      if (!seen.has(fingerprint)) {
+        seen.add(fingerprint);
+        uniqueImages[slotId] = img;
+      }
+    });
+    var photoCount = Object.keys(uniqueImages).length;
+    console.log('Images to upload:', photoCount, '(from', Object.keys(images).length, 'slots)');
+    var originalImages = images;
+    images = uniqueImages;
+
+    // Step 1: Upload images to Drive
+    var driveResult = null;
+    var imageUrls   = [];
+
+    if (photoCount > 0) {
+      statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+        + '<span class="mini-spin"></span> Uploading ' + photoCount + ' photo' + (photoCount > 1 ? 's' : '') + ' to Google Drive&hellip;</div>';
+      try {
+        driveResult = await uploadImagesToDrive(itemInfo.name, statusEl);
+        if (driveResult && driveResult.urls.length) {
+          imageUrls = driveResult.urls;
+          statusEl.innerHTML = '<div style="font-size:13px;color:#16a34a;margin-bottom:.5rem">'
+            + '&#10003; ' + imageUrls.length + '/' + photoCount + ' photos uploaded to Drive</div>'
+            + '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+            + '<span class="mini-spin"></span> Sending listing to eBay&hellip;</div>';
+        } else {
+          // Upload ran but nothing succeeded — show warning but continue
+          statusEl.innerHTML = '<div class="warn" style="margin-bottom:.5rem">&#9888; Photos could not be uploaded to Drive'
+            + (driveResult && driveResult.error ? ': ' + esc(driveResult.error) : ' — check Apps Script is updated and redeployed')
+            + '</div>'
+            + '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+            + '<span class="mini-spin"></span> Continuing without photos&hellip;</div>';
+        }
+      } catch(e) {
+        statusEl.innerHTML = '<div class="warn" style="margin-bottom:.5rem">&#9888; Drive upload error: ' + esc(e.message) + '</div>'
+          + '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+          + '<span class="mini-spin"></span> Continuing without photos&hellip;</div>';
+      }
+    } else {
+      statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+        + '<span class="mini-spin"></span> No photos to upload — sending listing to eBay&hellip;</div>';
+    }
+
+    // Step 2: Post to eBay via server
+    try {
+      var res = await Auth.fetch('/ebay/list', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item:            itemInfo,
+          listing:         L,
+          imageUrls:       imageUrls,
+          price:           priceData.recommended_price,
+        })
+      });
+      var data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Unknown error from server');
+
+      if (data.draft) {
+        // Should not happen anymore — but handle gracefully just in case
+        statusEl.innerHTML = '<div class="ok">&#10003; Offer created on eBay (offerId saved). Check Seller Hub → Active Listings.</div>';
+      } else {
+        statusEl.innerHTML = '<div class="ok" style="line-height:1.8">'
+          + '&#10003; <strong>Listed on eBay!</strong><br>'
+          + '<a href="' + data.url + '" target="_blank" style="color:#15803d;font-weight:500">&#128279; View your live listing &rarr;</a><br>'
+          + '<a href="' + (data.sellerHubUrl||'https://www.ebay.co.uk/sh/lst/active') + '" target="_blank" style="color:#15803d">Seller Hub &rarr; Active Listings</a>'
+          + (imageUrls.length ? '<br><span style="font-size:11px;color:#555">' + imageUrls.length + ' photo' + (imageUrls.length>1?'s':'') + ' attached from Drive.</span>' : '')
+          + '</div>';
+      }
+
+      // Log to Sheets with Drive folder link
+      logToSheets(L, driveResult);
+
+    } catch(e) {
+      statusEl.innerHTML = '<div class="err">&#9888; eBay post failed: ' + esc(e.message) + '</div>';
+    }
+
+    images = originalImages; // restore full images object
+    btn.disabled = false;
+    ebayPostInProgress = false;
+  };
+
+  // ── GOOGLE DRIVE IMAGE UPLOAD ─────────────────────────────────────────────
+
+  // Compress image to target width as JPEG — reduces ~4MB iPhone photo to ~200KB
+  function compressImage(b64, mime, targetWidth, quality) {
+    return new Promise(function(ok) {
+      var img = new Image();
+      img.onload = function() {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (w > targetWidth) { h = Math.round(h * targetWidth / w); w = targetWidth; }
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        var result = c.toDataURL('image/jpeg', quality);
+        ok(result.split(',')[1]);
+      };
+      img.onerror = function() { ok(b64); };
+      img.src = 'data:' + mime + ';base64,' + b64;
+    });
+  }
+
+  async function uploadImagesToDrive(itemName, statusEl) {
+    var imageList = Object.values(images);
+    if (!imageList.length) return null;
+    console.log('uploadImagesToDrive called with', imageList.length, 'images');
+
+    var timestamp    = new Date().toISOString().slice(0, 10);
+    var safeName     = (itemName || 'item').replace(/[^a-zA-Z0-9\s\-]/g, '').trim().substring(0, 40);
+    var subfolderName = timestamp + ' \u2014 ' + safeName;
+
+    // Compress all images first (in parallel)
+    statusEl && (statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+      + '<span class="mini-spin"></span> Compressing ' + imageList.length + ' photos&hellip;</div>');
+
+    var toUpload = await Promise.all(imageList.map(async function(img, i) {
+      var compressed = await compressImage(img.b64, img.mime, 1600, 0.82);
+      var filename   = safeName.replace(/\s+/g, '_') + '_' + (i + 1) + '.jpg';
+      console.log('Photo', (i+1), 'compressed:', compressed.length, 'chars (was', img.b64.length, ')');
+      return { base64: compressed, mimeType: 'image/jpeg', filename: filename };
+    }));
+
+    // Send all images in a single Apps Script call — avoids per-image HTTP overhead
+    statusEl && (statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">'
+      + '<span class="mini-spin"></span> Uploading ' + imageList.length + ' photos to Drive&hellip;</div>');
+
+    try {
+      var batchRes  = await Auth.fetch('/images/upload-batch', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: toUpload, folderName: subfolderName })
+      });
+      var batchData = await batchRes.json();
+
+      if (batchData.ok && batchData.results) {
+        var uploadedUrls = batchData.results.map(function(r){ return r.url; });
+        window._lastDriveUrls = uploadedUrls; // store for preview
+        console.log('Batch upload complete:', uploadedUrls.length, 'photos');
+        return {
+          folderId:   batchData.folderId,
+          urls:       uploadedUrls,
+          folderName: subfolderName,
+          error:      null,
+        };
+      } else {
+        console.warn('Batch upload failed:', batchData.error, '— falling back to individual uploads');
+      }
+    } catch(e) {
+      console.warn('Batch upload error:', e.message, '— falling back to individual uploads');
+    }
+
+    // Fallback: individual uploads if batch fails
+    var folderId     = null;
+    var uploadedUrls = [];
+    var errors       = [];
+    var results = await Promise.allSettled(toUpload.map(async function(upload, i) {
+      var res = await Auth.fetch('/images/upload', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: upload.base64, mimeType: upload.mimeType, filename: upload.filename, folderName: subfolderName })
+      });
+      var data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'upload failed');
+      return { url: data.url, folderId: data.folderId };
+    }));
+
+    results.forEach(function(result, i) {
+      if (result.status === 'fulfilled') {
+        uploadedUrls.push(result.value.url);
+        if (result.value.folderId) folderId = result.value.folderId;
+      } else {
+        errors.push('Photo ' + (i+1) + ': ' + result.reason);
+        console.warn('Photo', (i+1), 'failed:', result.reason);
+      }
+    });
+    return {
+      folderId:    folderId,
+      urls:        uploadedUrls,
+      folderName:  subfolderName,
+      error:       errors.length ? errors.join('; ') : null,
+    };
+  }
+
+  function logToSheets(listing, driveResult) {
+    var payload = {
+      name:               itemInfo.name||"",
+      brand:              itemInfo.brand||"",
+      model:              itemInfo.model||"",
+      category:           itemInfo.category||"",
+      subcategory:        itemInfo.subcategory||"",
+      color:              itemInfo.color||"",
+      material:           itemInfo.material||"",
+      size:               itemInfo.size||"",
+      gender:             itemInfo.gender||"",
+      approximate_age:    itemInfo.approximate_age||"",
+      country_of_manufacture: itemInfo.country_of_manufacture||"",
+      key_specs:          itemInfo.key_specs||"",
+      condition_summary:  Object.values(cond).filter(Boolean).join("; "),
+      ebay_sold_avg:      priceData?priceData.ebay_sold_avg||"":"",
+      ebay_current_avg:   priceData?priceData.ebay_current_avg||"":"",
+      vinted_avg:         priceData?priceData.vinted_avg||"":"",
+      retail_price:       priceData?priceData.retail_price||"":"",
+      recommended_price:  priceData?priceData.recommended_price||"":"",
+      best_offer_floor:   priceData?priceData.best_offer_floor||"":"",
+      price_confidence:   priceData?priceData.confidence||"":"",
+      listing_title:      listing.title||"",
+      ebay_condition:     listing.ebay_condition_label||"",
+      category_path:      listing.category_suggestion||"",
+      postage:            listing.postage_suggestion||"",
+      photoFolderId:      driveResult ? driveResult.folderId||"" : "",
+    };
+
+    var statusEl = document.getElementById("sheetsStatus");
+    Auth.fetch('/sheets/log', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (statusEl) {
+        statusEl.className = d.ok ? "ok" : "warn";
+        statusEl.innerHTML = d.ok
+          ? "&#10003; Logged to Google Sheets" + (driveResult && driveResult.urls.length ? " &amp; " + driveResult.urls.length + " photos saved to Drive" : "")
+          : "&#9888; Sheet logging failed: " + (d.error||"unknown error");
+      }
+    })
+    .catch(function(e) {
+      if (statusEl) {
+        statusEl.className = "warn";
+        statusEl.innerHTML = "&#9888; Server not running — item not logged";
+      }
+    });
+  }
+
+  // ── COPY & RESET ──────────────────────────────────────────────────────────
+  window.cp=function(id,fid){var el=document.getElementById(id);if(!el)return;navigator.clipboard.writeText(el.innerText||el.textContent).then(function(){var f=document.getElementById(fid);if(f){f.style.display="inline";setTimeout(function(){f.style.display="none";},2000);}});};
+  window.cpFull=function(){var L=window._L;if(!L)return;var txt=["TITLE: "+(L.title||""),"",L.description||"","",priceData?"PRICE: £"+priceData.recommended_price+"  |  Best offer floor: £"+priceData.best_offer_floor:"","CONDITION: "+(L.ebay_condition_label||"Good"),"CATEGORY: "+(L.category_suggestion||""),"POSTAGE: "+(L.postage_suggestion||"")].join("\n");navigator.clipboard.writeText(txt).then(function(){var f=document.getElementById("ff");if(f){f.style.display="inline";setTimeout(function(){f.style.display="none";},3000);}});};
+  window.resetAll=function(){
+    images={};itemInfo=null;cond={};priceData=null;
+    currentSlots=DEFAULT_SLOTS.slice();
+    document.getElementById("uploadMsg").innerHTML="";
+    document.getElementById("photoGuide").innerHTML='<strong>&#128161; Tip:</strong> Upload all your photos at once using the bulk upload zone, or click individual slots to add photos one by one.';
+    bulkZone.classList.remove("dragging");
+    ["p2","p3","p4","p5"].forEach(function(id){var el=document.getElementById(id);el.style.display="none";el.innerHTML="";});
+    document.getElementById("btnIdentify").style.display="none";
+    document.getElementById("btnIdentify").disabled=false;
+    renderSlots();
+    renderSlotGuide();
+    setStep(1); window.scrollTo({top:0,behavior:"smooth"});
+  };
+
+  // ── FAMILY ACCESS GATE ───────────────────────
+  // Require Google sign-in (allowlisted family) before revealing the tool,
+  // then reveal #app and refresh system status.
+  Auth.protect({ onReady: function(){ checkStatus(); } });
+
+}); // end DOMContentLoaded
+</script>
+</body>
+</html>
