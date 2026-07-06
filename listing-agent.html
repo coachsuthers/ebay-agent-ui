@@ -7,138 +7,130 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="shared/config.js"></script>
 <script src="shared/auth.js"></script>
+<link rel="stylesheet" href="shared/tokens.css">
+<script src="shared/theme.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a;background:#f5f5f3;min-height:100vh;padding-bottom:4rem}
+body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--bg);min-height:100vh;padding-bottom:4rem;-webkit-font-smoothing:antialiased}
 .container{max-width:680px;margin:0 auto;padding:0 1.25rem}
-.header{background:#fff;border-bottom:1px solid #e4e4e0;padding:1.25rem 0;margin-bottom:1.5rem}
-.header h1{font-size:20px;font-weight:600;color:#1a1a1a}
-.header p{font-size:13px;color:#666;margin-top:4px}
-.step-bar{display:flex;background:#fff;border:1px solid #e4e4e0;border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
-.step{flex:1;padding:9px 3px;text-align:center;font-size:11px;color:#bbb;background:#f5f5f3;border-right:1px solid #e4e4e0;transition:all .15s;line-height:1.4}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:1.25rem 0;margin-bottom:1.5rem}
+.header h1{font-size:20px;font-weight:600;color:var(--text)}
+.header p{font-size:13px;color:var(--text-dim);margin-top:4px}
+/* step bar */
+.step-bar{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.step{flex:1;padding:9px 3px;text-align:center;font-size:11px;color:var(--muted);background:transparent;border-right:1px solid var(--border);transition:all .15s;line-height:1.4}
 .step:last-child{border-right:none}
-.step.active{background:#fff;color:#1a1a1a;font-weight:600}
-.step.done{color:#16a34a}
-.card{background:#fff;border:1px solid #e4e4e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
-.lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;display:block}
-/* API key */
-.key-row{display:flex;gap:8px;margin:.5rem 0}
-.key-row input{flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:monospace;background:#fff;color:#1a1a1a;outline:none}
-.key-row input:focus{border-color:#4a6cf7}
-.key-note{font-size:11px;color:#999;line-height:1.5}
-.save-btn{padding:9px 16px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
-.save-btn:hover{background:#333}
-/* Guided photo slots */
-.photo-intro{font-size:13px;color:#555;margin-bottom:1rem;line-height:1.6;padding:.75rem 1rem;background:#f5f5f3;border-radius:8px}
-.photo-intro strong{color:#1a1a1a}
+.step.active{background:var(--surface-2);color:var(--text);font-weight:600}
+.step.done{color:var(--good)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+.lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;display:block}
+/* photo intro + slots */
+.photo-intro{font-size:13px;color:var(--text-dim);margin-bottom:1rem;line-height:1.6;padding:.75rem 1rem;background:var(--surface-2);border-radius:8px}
+.photo-intro strong{color:var(--text)}
 .slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
-.slot{border:2px dashed #d1d5db;border-radius:10px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;background:#fafafa;text-align:center;padding:8px}
-.slot:hover{border-color:#4a6cf7;background:#f0f4ff}
-.slot.filled{border-style:solid;border-color:#16a34a;background:#f0fdf4}
-.slot.optional{border-style:dashed;border-color:#d1d5db}
+.slot{border:2px dashed var(--border-lit);border-radius:10px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;background:var(--surface-2);text-align:center;padding:8px}
+.slot:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-2))}
+.slot.filled{border-style:solid;border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent)}
+.slot.optional{border-style:dashed;border-color:var(--border-lit)}
 .slot img{width:100%;height:100%;object-fit:cover;border-radius:7px;position:absolute;inset:0}
 .slot-icon{font-size:22px;display:block;margin-bottom:4px}
-.slot-label{font-size:11px;font-weight:600;color:#555;line-height:1.3}
-.slot-sub{font-size:10px;color:#aaa;margin-top:2px;line-height:1.2}
-.slot-rm{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#fee2e2;border:1px solid #fca5a5;cursor:pointer;font-size:13px;color:#dc2626;display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
-.slot-badge{position:absolute;top:4px;left:4px;background:#16a34a;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
-.slot-req{position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px}
-.slots-note{font-size:11px;color:#aaa;margin-bottom:1rem}
-/* Confirm */
+.slot-label{font-size:11px;font-weight:600;color:var(--text-dim);line-height:1.3}
+.slot-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
+.slot-rm{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--bad) 22%,var(--surface));border:1px solid var(--bad);cursor:pointer;font-size:13px;color:var(--bad);display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
+.slot-badge{position:absolute;top:4px;left:4px;background:var(--good);color:var(--accent-ink);font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
+.slot-req{position:absolute;top:4px;right:4px;background:var(--bad);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px}
+.slots-note{font-size:11px;color:var(--muted);margin-bottom:1rem}
+/* confirm */
 .confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .cf{display:flex;flex-direction:column;gap:4px}
-.cf label{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em}
-.cf input,.cf select{padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;font-family:inherit;width:100%}
-.cf input:focus,.cf select:focus{border-color:#4a6cf7}
-.cf input.hi,.cf select.hi{border-color:#f59e0b;background:#fffbeb}
-.conf-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;font-size:13px;padding:.625rem .875rem;border-radius:8px}
+.cf label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cf input,.cf select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:inherit;width:100%}
+.cf input:focus,.cf select:focus{border-color:var(--accent)}
+.cf input.hi,.cf select.hi{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.conf-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;font-size:13px;padding:.625rem .875rem;border-radius:8px;background:var(--surface-2)}
 .conf-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-/* Condition */
+/* condition */
 .qi{margin-bottom:12px}
-.qi label{font-size:13px;font-weight:500;display:block;margin-bottom:4px;color:#1a1a1a}
-.qi select,.qi input[type="text"]{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;font-family:inherit}
-/* Price */
-.price-hi{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
-.price-main{font-size:28px;font-weight:700;color:#16a34a}
-.price-floor{font-size:12px;color:#555;margin-top:2px}
-.pr{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0ec}
+.qi label{font-size:13px;font-weight:500;display:block;margin-bottom:4px;color:var(--text)}
+.qi select,.qi input[type="text"]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+/* price */
+.price-hi{background:color-mix(in srgb,var(--good) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--good) 30%,var(--border));border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.price-main{font-size:28px;font-weight:700;color:var(--accent)}
+.price-floor{font-size:12px;color:var(--text-dim);margin-top:2px}
+.pr{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
 .pr:last-child{border-bottom:none}
-.ps{font-size:13px;color:#555}
-.pv{font-size:13px;font-weight:500;color:#1a1a1a}
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#1a1a1a;font-size:13px;cursor:pointer;font-family:inherit;transition:background .12s,transform .1s}
-.btn:hover{background:#f5f5f3}
+.ps{font-size:13px;color:var(--text-dim)}
+.pv{font-size:13px;font-weight:500;color:var(--text)}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--border-lit);border-radius:8px;background:var(--surface-2);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;transition:background .12s,transform .1s,border-color .12s}
+.btn:hover{background:var(--surface);border-color:var(--accent)}
 .btn:active{transform:scale(.98)}
-.btn-p{background:#1a1a1a;color:#fff;border-color:transparent}
-.btn-p:hover{background:#333}
+.btn-p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn-p:hover{filter:brightness(1.08);background:var(--accent)}
 .btn-sm{padding:5px 11px;font-size:12px}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.25rem;align-items:center}
-/* Listing */
-.lo{background:#f5f5f3;border-radius:8px;padding:1rem;font-size:13px;line-height:1.7;color:#1a1a1a;white-space:pre-wrap;word-break:break-word;max-height:280px;overflow-y:auto}
+/* listing output */
+.lo{background:var(--surface-2);border-radius:8px;padding:1rem;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:280px;overflow-y:auto}
 .cb{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem}
-.cc{font-size:11px;color:#aaa;margin-top:4px}
-/* Sheets config */
-.sheets-row{display:flex;gap:8px;margin-top:.5rem;align-items:flex-start}
-.sheets-row input{flex:1;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:12px;font-family:monospace;background:#fff;color:#1a1a1a;outline:none}
-.sheets-row input:focus{border-color:#4a6cf7}
-.sheets-row button{padding:8px 14px;background:#0f9d58;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
-.sheets-row button:hover{background:#0b8043}
-/* Loading / misc */
-.loading{display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;gap:.75rem;color:#555;font-size:13px}
-.loading small{color:#aaa;font-size:11px}
-.spinner{width:28px;height:28px;border:2.5px solid #e4e4e0;border-top-color:#4a6cf7;border-radius:50%;animation:spin .8s linear infinite}
+.cc{font-size:11px;color:var(--muted);margin-top:4px}
+/* loading / misc */
+.loading{display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;gap:.75rem;color:var(--text-dim);font-size:13px}
+.loading small{color:var(--muted);font-size:11px}
+.spinner{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.err{background:#fef2f2;color:#dc2626;padding:.875rem 1rem;border-radius:8px;font-size:13px;border:1px solid #fecaca;margin-bottom:1rem;line-height:1.5}
-.ok{background:#f0fdf4;color:#15803d;padding:.875rem 1rem;border-radius:8px;font-size:13px;border:1px solid #bbf7d0;margin-bottom:.75rem}
-.warn{background:#fff7ed;color:#c2410c;padding:.75rem 1rem;border-radius:8px;font-size:13px;border:1px solid #fed7aa;margin-bottom:.75rem}
-.flash{color:#16a34a;font-size:12px;font-weight:500}
+.err{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad);padding:.875rem 1rem;border-radius:8px;font-size:13px;border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);margin-bottom:1rem;line-height:1.5}
+.ok{background:color-mix(in srgb,var(--good) 12%,transparent);color:var(--good);padding:.875rem 1rem;border-radius:8px;font-size:13px;border:1px solid color-mix(in srgb,var(--good) 35%,transparent);margin-bottom:.75rem}
+.warn{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn);padding:.75rem 1rem;border-radius:8px;font-size:13px;border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);margin-bottom:.75rem}
+.flash{color:var(--good);font-size:12px;font-weight:500}
 .bdg{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
-.bdg-g{background:#dcfce7;color:#15803d}
-.bdg-a{background:#fef9c3;color:#854d0e}
-.tips{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
-.rl{font-size:12px;color:#aaa;cursor:pointer;text-decoration:underline;margin-left:auto}
-.mini-spin{width:14px;height:14px;border:2px solid #e4e4e0;border-top-color:#4a6cf7;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;display:inline-block;vertical-align:middle}
-.note{font-size:12px;color:#888;margin-bottom:.875rem;line-height:1.5}
-.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;background:#eff6ff;color:#1d4ed8;font-weight:500;margin:2px}
-/* Status panel */
-.status-item{display:flex;align-items:center;gap:7px;padding:7px 10px;background:#f5f5f3;border-radius:8px;min-width:0}
-.st-dot{width:9px;height:9px;border-radius:50%;background:#d1d5db;flex-shrink:0;transition:background .3s}
-.st-dot.ok{background:#16a34a}
-.st-dot.err{background:#dc2626}
-.st-dot.warn{background:#f59e0b}
-.st-dot.spin{background:#4a6cf7;animation:pulse 1s ease-in-out infinite}
+.bdg-g{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.bdg-a{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tips{background:color-mix(in srgb,var(--warn) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 30%,var(--border));border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+.rl{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-left:auto}
+.mini-spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;display:inline-block;vertical-align:middle}
+.note{font-size:12px;color:var(--text-dim);margin-bottom:.875rem;line-height:1.5}
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;background:color-mix(in srgb,var(--accent-2) 16%,transparent);color:var(--accent-2);font-weight:500;margin:2px}
+/* status panel */
+.status-item{display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--surface-2);border-radius:8px;min-width:0}
+.st-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.st-dot.ok{background:var(--good)}
+.st-dot.err{background:var(--bad)}
+.st-dot.warn{background:var(--warn)}
+.st-dot.spin{background:var(--accent-2);animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.st-label{font-size:12px;font-weight:600;color:#1a1a1a;flex-shrink:0}
-.st-msg{font-size:11px;color:#666;margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
-.bulk-zone{display:block;border:2px dashed #4a6cf7;border-radius:12px;padding:1.5rem 1rem;text-align:center;background:#f8f9ff;cursor:pointer;transition:all .15s;color:#555;font-size:14px;margin-bottom:1rem}
-.bulk-zone:hover{background:#eff3ff;border-color:#3451d1}
-.bulk-zone.dragging{background:#e8edff;border-color:#1d4ed8;border-style:solid}
-/* Slot guidance */
-.slot-guide{background:#f5f5f3;border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem}
-.slot-guide-title{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.625rem}
+.st-label{font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
+.st-msg{font-size:11px;color:var(--text-dim);margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+/* bulk zone */
+.bulk-zone{display:block;border:2px dashed var(--accent);border-radius:12px;padding:1.5rem 1rem;text-align:center;background:color-mix(in srgb,var(--accent) 6%,var(--surface));cursor:pointer;transition:all .15s;color:var(--text-dim);font-size:14px;margin-bottom:1rem}
+.bulk-zone:hover{background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-color:var(--accent)}
+.bulk-zone.dragging{background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:var(--accent);border-style:solid}
+/* slot guidance */
+.slot-guide{background:var(--surface-2);border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem}
+.slot-guide-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.625rem}
 .slot-guide-items{display:flex;flex-wrap:wrap;gap:6px}
-.sg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#555;background:#fff;border:1px solid #e4e4e0;border-radius:6px;padding:4px 10px}
-.sg-item.req{border-color:#4a6cf7;color:#1d4ed8;background:#eff6ff}
-.sg-req-dot{width:6px;height:6px;border-radius:50%;background:#4a6cf7;flex-shrink:0}
-/* Slot confidence badges */
+.sg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-dim);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px}
+.sg-item.req{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.sg-req-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+/* slot confidence badges */
 .slot-conf{position:absolute;bottom:4px;left:4px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;z-index:2}
-.slot-conf-high{background:#dcfce7;color:#15803d}
-.slot-conf-med{background:#fef9c3;color:#854d0e}
-.slot-conf-low{background:#fee2e2;color:#991b1b}
-.slot.ai-assigned{border-color:#4a6cf7!important}
-/* Auth gate + user chip (Phase 3) */
+.slot-conf-high{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good)}
+.slot-conf-med{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.slot-conf-low{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+.slot.ai-assigned{border-color:var(--accent-2)!important}
+/* auth gate + user chip */
 .hidden{display:none!important}
 .gate{min-height:100vh;display:grid;place-items:center;padding:1.5rem}
 .gate .card{max-width:360px;width:100%;text-align:center;margin:0}
-.gate .mark{font-size:22px;font-weight:700;margin-bottom:.4rem;color:#1a1a1a}
-.gate .mark b{color:#4a6cf7}
-.gate p{font-size:13px;color:#666;margin:0 0 1.4rem;line-height:1.55}
+.gate .mark{font-size:22px;font-weight:700;margin-bottom:.4rem;color:var(--text)}
+.gate .mark b{color:var(--accent)}
+.gate p{font-size:13px;color:var(--text-dim);margin:0 0 1.4rem;line-height:1.55}
 .gate .gbtn{display:flex;justify-content:center;min-height:44px}
-.gate .err{background:none;border:none;padding:0;margin:.9rem 0 0;color:#dc2626;font-size:13px;min-height:18px}
-.userchip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4e4e0;border-radius:999px;padding:4px 6px 4px 12px;font-size:13px;color:#555;white-space:nowrap}
-.userchip .avatar{width:26px;height:26px;border-radius:50%;background:#eff6ff;color:#4a6cf7;display:grid;place-items:center;font-size:12px;font-weight:600}
-.userchip button{background:none;border:none;color:#999;font-size:12px;cursor:pointer;font-family:inherit;padding:2px 6px}
-.userchip button:hover{color:#1a1a1a}
+.gate .err{background:none;border:none;padding:0;margin:.9rem 0 0;color:var(--bad);font-size:13px;min-height:18px}
+.userchip{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px;color:var(--text-dim);white-space:nowrap}
+.userchip .avatar{width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:600}
+.userchip button{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:2px 6px}
+.userchip button:hover{color:var(--text)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -181,11 +173,11 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
       <div class="status-item" id="st-drive">   <span class="st-dot"></span><span class="st-label">Google Drive</span> <span class="st-msg">Checking…</span></div>
     </div>
     <div id="statusEbayConnect" style="display:none;margin-top:.875rem;padding-top:.875rem;border-top:1px solid #f0f0ec">
-      <p style="font-size:12px;color:#555;margin:0">
+      <p style="font-size:12px;color:var(--text-dim);margin:0">
         &#9888; eBay isn't connected right now. This is managed by the account admin &mdash; please let them know so they can reconnect it.
       </p>
     </div>
-        <p style="font-size:11px;color:#aaa;margin-top:.75rem">Backend: <span id="serverUrlDisplay" style="font-family:monospace"></span></p>
+        <p style="font-size:11px;color:var(--muted);margin-top:.75rem">Backend: <span id="serverUrlDisplay" style="font-family:monospace"></span></p>
   </div>
 
   <!-- STEP 1: GUIDED PHOTOS -->
@@ -201,7 +193,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
       <label for="bulkInput" class="bulk-zone" id="bulkZone">
         <span style="font-size:28px;display:block;margin-bottom:.5rem">&#128444;</span>
         <strong>Drop all photos here</strong> &mdash; or click to select multiple
-        <span style="display:block;font-size:11px;color:#aaa;margin-top:5px">The agent will automatically assign each photo to the right slot &bull; JPEG &bull; PNG &bull; WebP</span>
+        <span style="display:block;font-size:11px;color:var(--muted);margin-top:5px">The agent will automatically assign each photo to the right slot &bull; JPEG &bull; PNG &bull; WebP</span>
       </label>
 
       <!-- Slot guidance -->
@@ -228,126 +220,6 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
   <div id="p3" style="display:none"></div>
   <div id="p4" style="display:none"></div>
   <div id="p5" style="display:none"></div>
-
-  <!-- GOOGLE SHEETS + DRIVE SETUP INSTRUCTIONS -->
-  <div class="card" style="margin-top:2rem;border-color:#e4e4e0">
-    <span class="lbl" style="margin-top:1.25rem">Google Sheets &amp; Drive setup guide</span>
-    <p class="note">This script handles both item data logging to Sheets and photo storage to Drive. Update your existing Apps Script by replacing all the code with the version below, then follow the authorisation steps carefully.</p>
-    <ol style="font-size:13px;color:#555;line-height:2;padding-left:1.25rem">
-      <li>Go to <a href="https://script.google.com" target="_blank" style="color:#1d4ed8">script.google.com</a> and open your existing project</li>
-      <li>Select all the code and replace it with the script below</li>
-      <li><strong>Authorise Drive access:</strong> in the function dropdown (top toolbar) select <strong>authoriseDrive</strong> &rarr; click <strong>Run</strong> &rarr; click through all Google permission prompts and grant access to both Sheets and Drive</li>
-      <li>Click <strong>Deploy &rarr; Manage deployments</strong> &rarr; pencil icon &rarr; <strong>New version</strong> &rarr; Deploy</li>
-      <li>Test: visit <code style="font-size:11px;background:#f5f5f3;padding:1px 4px;border-radius:3px">https://your-railway-url.up.railway.app/test/drive</code> &mdash; should return <strong>{"ok":true}</strong></li>
-    </ol>
-    <p class="note" style="margin-top:.5rem">&#128218; <strong>Drive folder structure:</strong> My Drive &rarr; <strong>eBay Listings</strong> &rarr; <em>2026-06-28 — Nike Air Max 90</em> &rarr; photos. Created automatically. Does not need to be in the same location as the spreadsheet.</p>
-    <div style="margin-top:1rem;background:#1a1a1a;border-radius:8px;padding:1rem;font-size:12px;font-family:monospace;color:#e5e7eb;line-height:1.7;overflow-x:auto">
-      <div style="color:#9ca3af;margin-bottom:.5rem">// eBay Agent — Apps Script (replace all existing code with this)</div>
-      <div>var SHEET_NAME    = "Items";</div>
-      <div>var ROOT_FOLDER   = "eBay Listings"; <span style="color:#9ca3af">// top-level folder in My Drive</span></div>
-      <div>&nbsp;</div>
-      <div><span style="color:#9ca3af">// ── Run this function ONCE to authorise Drive access ─────────────</span></div>
-      <div><span style="color:#9ca3af">// Select "authoriseDrive" in the dropdown above and click Run.</span></div>
-      <div><span style="color:#9ca3af">// Click through ALL Google permission prompts. Do this before deploying.</span></div>
-      <div>function authoriseDrive() {</div>
-      <div>&nbsp;&nbsp;<span style="color:#9ca3af">// Call every DriveApp method we use — forces Google to request all permissions</span></div>
-      <div>&nbsp;&nbsp;var root    = DriveApp.getRootFolder();</div>
-      <div>&nbsp;&nbsp;var testFolder = root.createFolder("_ebay_agent_auth_test");</div>
-      <div>&nbsp;&nbsp;var testBlob   = Utilities.newBlob("test", "text/plain", "test.txt");</div>
-      <div>&nbsp;&nbsp;var testFile   = testFolder.createFile(testBlob);</div>
-      <div>&nbsp;&nbsp;testFile.setTrashed(true);</div>
-      <div>&nbsp;&nbsp;testFolder.setTrashed(true);</div>
-      <div>&nbsp;&nbsp;var ss = SpreadsheetApp.getActiveSpreadsheet();</div>
-      <div>&nbsp;&nbsp;Logger.log("All permissions granted: Drive read+write, Sheets. You can now deploy.");</div>
-      <div>}</div>
-      <div>&nbsp;</div>
-      <div><span style="color:#9ca3af">// Get or create a folder by name inside a parent folder</span></div>
-      <div>function getOrCreateSubfolder(parent, name) {</div>
-      <div>&nbsp;&nbsp;var folders = parent.getFoldersByName(name);</div>
-      <div>&nbsp;&nbsp;return folders.hasNext() ? folders.next() : parent.createFolder(name);</div>
-      <div>}</div>
-      <div>&nbsp;</div>
-      <div><span style="color:#9ca3af">// Get or create the root eBay Listings folder</span></div>
-      <div>function getRootFolder() {</div>
-      <div>&nbsp;&nbsp;var folders = DriveApp.getFoldersByName(ROOT_FOLDER);</div>
-      <div>&nbsp;&nbsp;return folders.hasNext() ? folders.next() : DriveApp.createFolder(ROOT_FOLDER);</div>
-      <div>}</div>
-      <div>&nbsp;</div>
-      <div>function doPost(e) {</div>
-      <div>&nbsp;&nbsp;try {</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;var raw  = e.postData ? e.postData.contents : "{}";</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;var data = JSON.parse(raw);</div>
-      <div>&nbsp;</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// ── Batch image upload ────────────────────────</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;if (data.action === "uploadBatch") {</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var root    = getRootFolder();</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var folder  = getOrCreateSubfolder(root, data.folderName || "Uploads");</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var results = [];</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; data.images.length; i++) {</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var img   = data.images[i];</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var bytes = Utilities.base64Decode(img.base64);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var blob  = Utilities.newBlob(bytes, img.mimeType || "image/jpeg", img.filename || ("photo_" + (i+1) + ".jpg"));</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var file  = folder.createFile(blob);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;results.push({url: "https://drive.google.com/uc?export=view&id=" + file.getId(), id: file.getId()});</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JSON.stringify({status:"ok", results:results, folderId:folder.getId()}))</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// ── Single image upload ───────────────────────</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;if (data.action === "uploadImage") {</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var root    = getRootFolder();</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// Use item subfolder name sent from agent, or fall back to date</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var subName = data.folderName || Utilities.formatDate(new Date(), "Europe/London", "yyyy-MM-dd");</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var folder  = getOrCreateSubfolder(root, subName);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var bytes   = Utilities.base64Decode(data.base64);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var blob    = Utilities.newBlob(bytes, data.mimeType || "image/jpeg", data.filename || "photo.jpg");</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var file    = folder.createFile(blob);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// Share with link so eBay can access the image URL</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var url = "https://drive.google.com/uc?export=view&id=" + file.getId();</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JSON.stringify({status:"ok", url:url, id:file.getId(), folderId:folder.getId()}))</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
-      <div>&nbsp;</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#9ca3af">// ── Item log ──────────────────────────────────</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;var ss    = SpreadsheetApp.getActiveSpreadsheet();</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;if (sheet.getLastRow() === 0) {</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sheet.appendRow(["Date","Name","Brand","Model","Category","Subcategory",</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Colour","Material","Size","Gender","Era","Country","Key Specs","Condition",</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"eBay Sold Avg","eBay Live Avg","Vinted Avg","Retail Price",</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Recommended Price","Best Offer Floor","Price Confidence",</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Listing Title","eBay Condition","Category Path","Postage","Photo Folder"]);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;var folderUrl = data.photoFolderId</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;? "https://drive.google.com/drive/folders/" + data.photoFolderId : "";</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;sheet.appendRow([</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new Date(), data.name, data.brand, data.model,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.category, data.subcategory, data.color, data.material,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.size, data.gender, data.approximate_age, data.country_of_manufacture,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.key_specs, data.condition_summary,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.ebay_sold_avg, data.ebay_current_avg,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.vinted_avg, data.retail_price, data.recommended_price,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.best_offer_floor, data.price_confidence,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.listing_title, data.ebay_condition, data.category_path, data.postage,</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;folderUrl]);</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify({status:"ok"}))</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
-      <div>&nbsp;&nbsp;} catch(err) {</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify({status:"error",message:err.toString()}))</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
-      <div>&nbsp;&nbsp;}</div>
-      <div>}</div>
-      <div>&nbsp;</div>
-      <div>function doGet(e) {</div>
-      <div>&nbsp;&nbsp;return ContentService.createTextOutput(JSON.stringify({status:"ok",message:"eBay Agent connected"}))</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);</div>
-      <div>}</div>
-    </div>
-  </div>
 
 </div><!-- /container -->
 

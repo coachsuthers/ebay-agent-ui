@@ -1,39 +1,10 @@
 /* ===========================================================================
-   eBay Agent Console — shared design system
-   Direction: a warm, quiet "resale ledger". Deep slate surfaces, a single
-   brass accent reserved for value/money, a characterful serif for display,
-   humanist sans for body, and mono for data (SKUs, prices, metrics).
+   Family Selling — component library for the dashboard / revise / performance
+   pages. All colours, fonts and radii come from the master token file below;
+   this file only styles components. Edit tokens.css to change the brand.
    =========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-:root {
-  /* palette */
-  --bg:        #14171C;   /* deep slate, not pure black */
-  --surface:   #1D222A;   /* raised card */
-  --surface-2: #232A33;   /* hover / nested */
-  --border:    #2C333D;
-  --border-lit:#3A434F;
-  --text:      #E7EAEE;
-  --text-dim:  #A2ABB7;
-  --muted:     #737D8A;
-  --brass:     #D8A24A;   /* THE accent — value, money, signature */
-  --brass-dim: #A9803B;
-  --good:      #5FB88C;   /* status ok */
-  --warn:      #D89A4A;
-  --bad:       #CE6A5C;
-
-  /* type */
-  --display: 'Fraunces', Georgia, serif;
-  --body:    'Source Sans 3', system-ui, sans-serif;
-  --mono:    'IBM Plex Mono', ui-monospace, monospace;
-
-  /* rhythm */
-  --radius: 12px;
-  --radius-sm: 8px;
-  --gap: 20px;
-  --maxw: 980px;
-}
+@import url('tokens.css');
 
 * { box-sizing: border-box; }
 

@@ -1,0 +1,79 @@
+/* ===========================================================================
+   Family Selling — DESIGN TOKENS  (the single source of truth for styling)
+   ---------------------------------------------------------------------------
+   Every colour, font and radius the app uses is a variable defined here.
+   Dark is the default (:root); light values live under [data-theme="light"].
+   theme.js flips the data-theme attribute on <html> and remembers the choice.
+
+   To rebrand: change values in THIS file only — all pages update automatically.
+   Palette: "Neon Highlights" (near-black + neon green / electric blue / pink).
+   =========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  /* ---- type ---- */
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* ---- neon-dark palette (default) ---- */
+  --bg:         #0D0D0D;   /* app background — almost black */
+  --surface:    #151518;   /* cards */
+  --surface-2:  #1E1F23;   /* raised / hover / nested */
+  --border:     #27282D;
+  --border-lit: #3A3B42;
+  --text:       #F4F5F7;   /* primary text (near-white, softer than pure) */
+  --text-dim:   #A2A6AF;   /* secondary text */
+  --muted:      #6C7079;   /* labels, captions */
+
+  --accent:     #00FF85;   /* neon green — primary action / value / money */
+  --accent-ink: #04140C;   /* text placed ON an accent fill */
+  --accent-2:   #1E90FF;   /* electric blue — links / info / spinners */
+  --hot:        #FF0099;   /* vivid pink — attention / hover flourish */
+
+  --good:       #00FF85;   /* success (shares the neon green) */
+  --warn:       #FFB020;   /* amber */
+  --bad:        #FF5470;   /* error / destructive */
+
+  /* ---- shape, depth & layout ---- */
+  --radius:     14px;
+  --radius-sm:  9px;
+  --gap:        20px;
+  --maxw:       980px;
+  --shadow:     0 8px 30px rgba(0,0,0,.45);
+  --glow:       0 0 22px rgba(0,255,133,.25);  /* neon halo (dark only) */
+
+  /* ---- back-compat aliases (older inline references keep working) ---- */
+  --display:    var(--font);
+  --body:       var(--font);
+  --brass:      var(--accent);
+  --brass-dim:  #00C46A;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg:         #FFFFFF;
+  --surface:    #F7F8FA;
+  --surface-2:  #EDEFF3;
+  --border:     #E4E7EC;
+  --border-lit: #D0D5DD;
+  --text:       #14161A;
+  --text-dim:   #565B66;
+  --muted:      #8A9099;
+
+  --accent:     #00B85F;   /* darker green — readable on white */
+  --accent-ink: #FFFFFF;
+  --accent-2:   #0A6CE0;
+  --hot:        #D6007F;
+
+  --good:       #12B76A;
+  --warn:       #B25E00;
+  --bad:        #D92D20;
+
+  --shadow:     0 6px 24px rgba(16,24,40,.10);
+  --glow:       none;
+  --brass-dim:  #00B85F;
+}
