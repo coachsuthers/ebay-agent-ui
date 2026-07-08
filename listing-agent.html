@@ -131,6 +131,17 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 .userchip button{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:2px 6px}
 .userchip button:hover{color:var(--text)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+/* header brand mark */
+.brand-mark{height:40px;width:auto;border-radius:10px;flex-shrink:0;border:1px solid var(--border-lit);display:block}
+.header h1{font-size:18px}
+/* compact systems strip (de-emphasised, matches the dashboard) */
+.systems{display:flex;align-items:center;flex-wrap:wrap;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;margin:1.5rem 0 .5rem}
+.systems .sys-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.systems .status-item{background:none;border:none;border-radius:0;padding:0;gap:6px}
+.systems .st-label{font-size:12px;font-weight:500;color:var(--text-dim)}
+.systems .st-msg{display:none}
+.sys-refresh{margin-left:auto;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+.sys-refresh:hover{color:var(--text);background:var(--surface-2)}
 </style>
 </head>
 <body>
@@ -139,9 +150,12 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 
 <div class="header">
   <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
-    <div>
-      <h1>&#127991; eBay Listing Agent</h1>
-      <p>Guided photos &rarr; confirm details &rarr; condition &rarr; pricing &rarr; listing</p>
+    <div style="display:flex;align-items:center;gap:12px">
+      <img class="brand-mark" src="shared/family-mark.png" alt="Family Selling">
+      <div>
+        <h1>eBay Listing Agent</h1>
+        <p>Guided photos &rarr; confirm details &rarr; condition &rarr; pricing &rarr; listing</p>
+      </div>
     </div>
     <div id="userchip"></div>
   </div>
@@ -160,27 +174,7 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
     <div class="step" id="s5">&#128196;<br>Listing</div>
   </div>
 
-  <!-- CONNECTION STATUS PANEL -->
-  <div class="card" id="statusPanel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-      <span class="lbl" style="margin:0">System status</span>
-      <button onclick="checkStatus()" class="btn btn-sm" id="statusRefreshBtn" style="font-size:11px;padding:4px 10px">&#8635; Refresh</button>
-    </div>
-    <div id="statusGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="status-item" id="st-server">  <span class="st-dot"></span><span class="st-label">Backend server</span><span class="st-msg">Checking…</span></div>
-      <div class="status-item" id="st-ebay">    <span class="st-dot"></span><span class="st-label">eBay API</span>    <span class="st-msg">Checking…</span></div>
-      <div class="status-item" id="st-sheets">  <span class="st-dot"></span><span class="st-label">Google Sheets</span><span class="st-msg">Checking…</span></div>
-      <div class="status-item" id="st-drive">   <span class="st-dot"></span><span class="st-label">Google Drive</span> <span class="st-msg">Checking…</span></div>
-    </div>
-    <div id="statusEbayConnect" style="display:none;margin-top:.875rem;padding-top:.875rem;border-top:1px solid #f0f0ec">
-      <p style="font-size:12px;color:var(--text-dim);margin:0">
-        &#9888; eBay isn't connected right now. This is managed by the account admin &mdash; please let them know so they can reconnect it.
-      </p>
-    </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:.75rem">Backend: <span id="serverUrlDisplay" style="font-family:monospace"></span></p>
-  </div>
-
-  <!-- STEP 1: GUIDED PHOTOS -->
+  <!-- STEP 1: GUIDED PHOTOS -->  <!-- STEP 1: GUIDED PHOTOS -->
   <div id="p1">
     <div class="card">
       <span class="lbl">Step 1 — Add photos</span>
@@ -220,6 +214,19 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
   <div id="p3" style="display:none"></div>
   <div id="p4" style="display:none"></div>
   <div id="p5" style="display:none"></div>
+
+  <!-- CONNECTION STATUS (compact, de-emphasised) -->
+  <div class="systems" id="statusPanel">
+    <span class="sys-label">Systems</span>
+    <span class="status-item" id="st-server"><span class="st-dot"></span><span class="st-label">Server</span><span class="st-msg"></span></span>
+    <span class="status-item" id="st-ebay"><span class="st-dot"></span><span class="st-label">eBay</span><span class="st-msg"></span></span>
+    <span class="status-item" id="st-sheets"><span class="st-dot"></span><span class="st-label">Sheets</span><span class="st-msg"></span></span>
+    <span class="status-item" id="st-drive"><span class="st-dot"></span><span class="st-label">Drive</span><span class="st-msg"></span></span>
+    <button class="sys-refresh" id="statusRefreshBtn" onclick="checkStatus()" title="Refresh status">&#8635;</button>
+    <div id="statusEbayConnect" style="display:none;flex-basis:100%;margin-top:.4rem">
+      <p style="font-size:12px;color:var(--text-dim);margin:0">&#9888; eBay isn't connected right now. This is managed by the account admin &mdash; please let them know so they can reconnect it.</p>
+    </div>
+  </div>
 
 </div><!-- /container -->
 
@@ -324,7 +331,8 @@ document.addEventListener("DOMContentLoaded", function() {
     var text = item.querySelector('.st-msg');
     dot.className  = 'st-dot ' + state;
     text.textContent = msg;
-    text.title       = msg; // show full text on hover
+    text.title       = msg;
+    item.title       = msg; // hover shows full status on the compact strip
   }
 
   window.checkStatus = async function() {
