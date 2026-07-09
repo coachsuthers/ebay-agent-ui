@@ -8,18 +8,19 @@
 
 * { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 
 body {
   margin: 0;
   background:
-    radial-gradient(900px 500px at 15% -10%, rgba(216,162,74,0.06), transparent 60%),
+    radial-gradient(900px 500px at 15% -10%, rgba(0,255,133,0.06), transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: var(--body);
   font-size: 16px;
   line-height: 1.55;
   min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -33,7 +34,8 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; justify-content: space-between;
   gap: 16px; margin-bottom: 40px;
 }
-.brand { display: flex; align-items: baseline; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: center; flex-shrink: 0; border: 2px solid var(--border-lit); background: var(--surface-2); display: block; }
 .brand .mark {
   font-family: var(--display);
   font-weight: 600;
@@ -190,12 +192,23 @@ table.ledger tr:hover td { background: var(--surface-2); }
 .gate .mark b { color: var(--brass); }
 .gate p { color: var(--text-dim); font-size: 14.5px; margin: 0 0 26px; }
 .gate .gbtn { display: flex; justify-content: center; min-height: 44px; }
+/* clip the GIS button iframe to the pill so no white corners show in dark mode */
+.gate .gbtn > div, .gate .gbtn iframe { border-radius: 100px !important; overflow: hidden; }
 .gate .err { color: var(--bad); font-size: 13.5px; margin-top: 18px; min-height: 20px; }
 .hidden { display: none !important; }
 
 /* ---- empty / loading ------------------------------------------------------*/
 .empty { text-align: center; color: var(--muted); padding: 48px 20px; }
 .empty .big { font-family: var(--display); font-size: 20px; color: var(--text-dim); margin-bottom: 6px; }
+
+@media (max-width: 560px) {
+  .wrap { padding: 24px 16px 72px; }
+  .topbar { flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+  h1.page { font-size: 26px; }
+  .lede { font-size: 15px; }
+  table.ledger { font-size: 13px; }
+  table.ledger th, table.ledger td { padding: 9px 8px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

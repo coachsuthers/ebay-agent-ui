@@ -18,6 +18,7 @@
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem(KEY, next); } catch (e) {}
     render();
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
   }
   function toggle() { apply(theme === 'dark' ? 'light' : 'dark'); }
 

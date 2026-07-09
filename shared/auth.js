@@ -92,7 +92,7 @@ const Auth = (() => {
     return `
       <div class="gate" id="auth-gate">
         <div class="card">
-          <div class="mark">Family <b>Selling</b></div>
+          <div class="mark">Family <b>Resale</b></div>
           <p>${message || "Sign in with your Google account to manage the family's eBay listings."}</p>
           <div class="gbtn" id="gbtn"></div>
           <div class="err" id="auth-err"></div>
@@ -123,12 +123,20 @@ const Auth = (() => {
     });
     const target = document.getElementById("gbtn");
     if (target) {
+      // Match the button to the active theme so it isn't a white block in dark mode.
+      const dark = document.documentElement.getAttribute("data-theme") !== "light";
       target.innerHTML = "";
       google.accounts.id.renderButton(target, {
-        theme: "filled_black", size: "large", shape: "pill", text: "signin_with",
+        theme: dark ? "filled_black" : "outline",
+        size: "large", shape: "pill", text: "signin_with", width: 280,
       });
     }
   }
+
+  // Re-render the button when the user flips the theme while on the sign-in gate.
+  window.addEventListener("themechange", function () {
+    if (document.getElementById("gbtn")) renderGoogleButton();
+  });
 
   function revealPage(user) {
     const gate = document.getElementById("auth-gate");
