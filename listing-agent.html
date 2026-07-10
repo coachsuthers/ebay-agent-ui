@@ -8,6 +8,7 @@
 <script src="shared/config.js"></script>
 <script src="shared/auth.js"></script>
 <link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/status.css">
 <script src="shared/theme.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -92,15 +93,6 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 .note{font-size:12px;color:var(--text-dim);margin-bottom:.875rem;line-height:1.5}
 .tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;background:color-mix(in srgb,var(--accent-2) 16%,transparent);color:var(--accent-2);font-weight:500;margin:2px}
 /* status panel */
-.status-item{display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--surface-2);border-radius:8px;min-width:0}
-.st-dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
-.st-dot.ok{background:var(--good)}
-.st-dot.err{background:var(--bad)}
-.st-dot.warn{background:var(--warn)}
-.st-dot.spin{background:var(--accent-2);animation:pulse 1s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.st-label{font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
-.st-msg{font-size:11px;color:var(--text-dim);margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
 /* bulk zone */
 .bulk-zone{display:block;border:2px dashed var(--accent);border-radius:12px;padding:1.5rem 1rem;text-align:center;background:color-mix(in srgb,var(--accent) 6%,var(--surface));cursor:pointer;transition:all .15s;color:var(--text-dim);font-size:14px;margin-bottom:1rem}
 .bulk-zone:hover{background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-color:var(--accent)}
@@ -145,22 +137,42 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
   .price-main{font-size:24px}
   .btn{padding:8px 13px}
   .step{font-size:10px;padding:8px 2px}
-  .systems{gap:12px;padding:9px 12px}
   .slots{gap:6px}
   .slot-sub{display:none}
 }
+/* entrance animations */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUpFade{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+#app:not(.hidden){animation:fadeIn .5s ease both}
+#p2,#p3,#p4,#p5{animation:slideUpFade .45s cubic-bezier(.22,.61,.36,1) both}
+@media (prefers-reduced-motion:reduce){#app:not(.hidden),#p2,#p3,#p4,#p5{animation:none}}
+/* embedded eBay preview (deliberately light, to mimic eBay) */
+#ebayPreview{background:#fff;color:#111820;border:1px solid #dfe3e8;border-radius:10px;padding:18px;margin-top:.5rem}
+#ebayPreview .ebp{display:flex;gap:20px;flex-wrap:wrap}
+#ebayPreview .ebp-gallery{flex:0 0 240px;max-width:240px}
+#ebayPreview .ebp-main{width:100%;aspect-ratio:1;object-fit:contain;background:#f7f7f7;border:1px solid #e5e7eb;border-radius:8px;display:block}
+#ebayPreview .ebp-noimg{display:grid;place-items:center;color:#9aa2ad;font-size:13px;aspect-ratio:1}
+#ebayPreview .ebp-thumbs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+#ebayPreview .ebp-thumb{width:44px;height:44px;object-fit:cover;border:1px solid #ddd;border-radius:6px;cursor:pointer}
+#ebayPreview .ebp-thumb.active{border-color:#3665f3;box-shadow:0 0 0 1px #3665f3}
+#ebayPreview .ebp-info{flex:1;min-width:220px}
+#ebayPreview .ebp-cond{font-size:13px;color:#565b64;margin-bottom:6px}
+#ebayPreview .ebp-title{font-size:20px;font-weight:600;line-height:1.35;color:#111820;margin-bottom:12px}
+#ebayPreview .ebp-price{font-size:26px;font-weight:700;color:#111820;margin-bottom:4px}
+#ebayPreview .ebp-ship{font-size:13px;color:#565b64;margin-bottom:16px}
+#ebayPreview .ebp-btns{max-width:320px}
+#ebayPreview .ebp-buy,#ebayPreview .ebp-offer,#ebayPreview .ebp-watch{display:block;width:100%;border-radius:22px;padding:11px;font-size:15px;font-weight:600;cursor:default;margin-bottom:8px;font-family:inherit}
+#ebayPreview .ebp-buy{background:#3665f3;color:#fff;border:none}
+#ebayPreview .ebp-offer{background:#fff;color:#3665f3;border:1px solid #3665f3}
+#ebayPreview .ebp-watch{background:#fff;color:#111820;border:1px solid #767676;font-weight:500}
+#ebayPreview .ebp-desc{margin-top:18px;border-top:1px solid #e5e7eb;padding-top:14px}
+#ebayPreview .ebp-desc h3{font-size:16px;margin-bottom:8px;color:#111820}
+#ebayPreview .ebp-desc p{font-size:14px;line-height:1.6;margin-bottom:8px;color:#333}
+@media(max-width:560px){#ebayPreview .ebp-gallery{flex-basis:100%;max-width:none}}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 /* header brand mark */
 .brand-mark{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center;flex-shrink:0;border:2px solid var(--border-lit);background:var(--surface-2);display:block}
 .header h1{font-size:18px}
-/* compact systems strip (de-emphasised, matches the dashboard) */
-.systems{display:flex;align-items:center;flex-wrap:wrap;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 16px;margin:1.5rem 0 .5rem}
-.systems .sys-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.systems .status-item{background:none;border:none;border-radius:0;padding:0;gap:6px}
-.systems .st-label{font-size:12px;font-weight:500;color:var(--text-dim)}
-.systems .st-msg{display:none}
-.sys-refresh{margin-left:auto;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
-.sys-refresh:hover{color:var(--text);background:var(--surface-2)}
 </style>
 </head>
 <body>
@@ -236,12 +248,11 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 
   <!-- CONNECTION STATUS (compact, de-emphasised) -->
   <div class="systems" id="statusPanel">
-    <span class="sys-label">Systems</span>
-    <span class="status-item" id="st-server"><span class="st-dot"></span><span class="st-label">Server</span><span class="st-msg"></span></span>
-    <span class="status-item" id="st-ebay"><span class="st-dot"></span><span class="st-label">eBay</span><span class="st-msg"></span></span>
-    <span class="status-item" id="st-sheets"><span class="st-dot"></span><span class="st-label">Sheets</span><span class="st-msg"></span></span>
-    <span class="status-item" id="st-drive"><span class="st-dot"></span><span class="st-label">Drive</span><span class="st-msg"></span></span>
-    <button class="sys-refresh" id="statusRefreshBtn" onclick="checkStatus()" title="Refresh status">&#8635;</button>
+    <span class="label">Systems</span>
+    <span class="sys" id="st-server"><span class="dot wait"></span>Server</span>
+    <span class="sys" id="st-ebay"><span class="dot wait"></span>eBay</span>
+    <span class="sys" id="st-sheets"><span class="dot wait"></span>Sheets</span>
+    <span class="sys" id="st-drive"><span class="dot wait"></span>Drive</span>
     <div id="statusEbayConnect" style="display:none;flex-basis:100%;margin-top:.4rem">
       <p style="font-size:12px;color:var(--text-dim);margin:0">&#9888; eBay isn't connected right now. This is managed by the account admin &mdash; please let them know so they can reconnect it.</p>
     </div>
@@ -346,12 +357,10 @@ document.addEventListener("DOMContentLoaded", function() {
   function setStatusItem(id, state, msg) {
     var item = document.getElementById(id);
     if (!item) return;
-    var dot  = item.querySelector('.st-dot');
-    var text = item.querySelector('.st-msg');
-    dot.className  = 'st-dot ' + state;
-    text.textContent = msg;
-    text.title       = msg;
-    item.title       = msg; // hover shows full status on the compact strip
+    var dot = item.querySelector('.dot');
+    var cls = state === 'ok' ? 'ok' : (state === 'spin' ? 'wait' : 'bad');
+    if (dot) dot.className = 'dot ' + cls;
+    item.title = msg; // full status on hover
   }
 
   window.checkStatus = async function() {
@@ -1219,8 +1228,28 @@ document.addEventListener("DOMContentLoaded", function() {
       if(priceData.vinted_avg)       html+='<div class="pr"><span class="ps">Vinted</span><span class="pv">&pound;'+priceData.vinted_avg+'</span></div>';
       if(priceData.retail_price)     html+='<div class="pr"><span class="ps">New / RRP</span><span class="pv">&pound;'+priceData.retail_price+'</span></div>';
       if(priceData.price_rationale)  html+='<div style="margin-top:.625rem;font-size:12px;color:#555;padding-top:.625rem;border-top:1px solid #f0f0ec">'+esc(priceData.price_rationale)+'</div>';
-      html+='</div><div class="btn-row"><button class="btn btn-p" onclick="window.genListing()">&#128203; Generate listing</button></div>';
+      html+='</div>';
+      // manual price adjustment before listing
+      html+='<div class="card"><span class="lbl">Your price</span>'
+        +'<p class="note" style="margin-bottom:.6rem">This is what the item will list for &mdash; adjust it if you\'d like.</p>'
+        +'<div style="display:flex;align-items:center;gap:8px;max-width:220px">'
+        +'<span style="font-size:20px;color:var(--text-dim)">&pound;</span>'
+        +'<input type="number" id="priceOverride" value="'+priceData.recommended_price+'" step="0.50" min="0" '
+        +'style="flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:16px;font-weight:600;outline:none"></div></div>';
+      html+='<div class="btn-row"><button class="btn btn-p" onclick="window.genListing()">&#128203; Generate listing</button></div>';
       p4.innerHTML=html;
+      (function(){
+        var pi=document.getElementById('priceOverride');
+        if(!pi)return;
+        pi.addEventListener('input',function(){
+          var v=parseFloat(pi.value);
+          if(!isNaN(v)&&v>0){
+            priceData.recommended_price=v;
+            var pm=document.querySelector('.price-main');
+            if(pm)pm.innerHTML='&pound;'+v;
+          }
+        });
+      })();
     } catch(e) {
       p4.innerHTML='<div class="err"><strong>Pricing search failed.</strong><br>'+esc(e.message)+'</div>'
         +'<div class="btn-row">'
@@ -1304,28 +1333,26 @@ document.addEventListener("DOMContentLoaded", function() {
         +'</div>'
         +(L.seller_notes?'<div class="tips"><span class="lbl" style="color:#92400e">Seller tips</span><div style="font-size:13px;color:#78350f">'+esc(L.seller_notes)+'</div></div>':"")
 
-        // ── Preview section ────────────────────────────────────────────
-        +'<div class="card" style="border-color:#0f9d58">'
-        +'<span class="lbl" style="color:#0f9d58">&#128196; Preview listing</span>'
-        +'<p style="font-size:12px;color:#555;margin-bottom:.875rem;line-height:1.5">'
-        +'Generate a preview HTML file and save it to Google Drive. Review everything — including the exact condition eBay will use — before going live.</p>'
-        +'<div class="btn-row" style="margin-top:0">'
-        +'<button class="btn" style="background:#0f9d58;color:#fff;border-color:#0f9d58" onclick="previewListing()">&#128196; Save preview to Drive</button>'
+        // ── eBay preview (in-page) ─────────────────────────────────────
+        +'<div class="card">'
+        +'<div class="cb"><span class="lbl" style="margin:0">&#128065; eBay preview</span>'
+        +'<button class="btn btn-sm" onclick="renderEbayPreview()">&#8635; Refresh</button></div>'
+        +'<p class="note">How your listing will look on eBay. Change the price or condition above, then refresh to update.</p>'
+        +'<div id="ebayPreview"></div>'
         +'</div>'
-        +'<div id="previewStatus" style="margin-top:.75rem"></div>'
-        +'</div>'
-        +'<div class="card" style="border-color:#4a6cf7">'
-        +'<span class="lbl" style="color:#1d4ed8">&#128279; Post to eBay</span>'
-        +'<p style="font-size:12px;color:#555;margin-bottom:.875rem;line-height:1.5">'
-        +'Review the title, description and price above, then click Post to eBay to publish this listing live on your eBay account. '
-        +'You can end the listing at any time from <a href="https://www.ebay.co.uk/sh/lst/active" target="_blank" style="color:#1d4ed8">Seller Hub &rarr; Active Listings</a>.</p>'
+        // ── Post to eBay ───────────────────────────────────────────────
+        +'<div class="card">'
+        +'<span class="lbl">&#128279; Post to eBay</span>'
+        +'<p style="font-size:12px;color:var(--text-dim);margin-bottom:.875rem;line-height:1.5">'
+        +'Review the preview above, then post this listing live to your eBay account. '
+        +'You can end it any time from <a href="https://www.ebay.co.uk/sh/lst/active" target="_blank">Seller Hub &rarr; Active Listings</a>.</p>'
         +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:.875rem">'
         +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">'
-        +'<input type="checkbox" id="confirmToggle" style="width:16px;height:16px;accent-color:#4a6cf7"> '
+        +'<input type="checkbox" id="confirmToggle" style="width:16px;height:16px;accent-color:var(--accent)"> '
         +'I\'ve reviewed the listing and I\'m ready to post it live on eBay</label>'
         +'</div>'
         +'<div class="btn-row" style="margin-top:0">'
-        +'<button class="btn btn-p" style="background:#4a6cf7;border-color:#4a6cf7" onclick="postToEbay()">&#128279; Post to eBay</button>'
+        +'<button class="btn btn-p" onclick="postToEbay()">&#128279; Post to eBay</button>'
         +'</div>'
         +'<div id="ebayPostStatus" style="margin-top:.75rem"></div>'
         +'</div>'
@@ -1339,9 +1366,50 @@ document.addEventListener("DOMContentLoaded", function() {
         +'<span id="ff" class="flash" style="display:none">Copied!</span>'
         +'<span class="rl" onclick="resetAll()">&#8635; New item</span></div>';
       p5.innerHTML=html;
+      renderEbayPreview();
+      var condSel=document.getElementById('conditionOverride');
+      if(condSel)condSel.addEventListener('change',renderEbayPreview);
     } catch(e) {
       p5.innerHTML='<div class="err">'+esc(e.message)+'</div>';
     }
+  };
+
+  // ── EMBEDDED eBAY PREVIEW ─────────────────────────────────────────────────
+  window.ebpSwap = function(el){
+    var main=document.getElementById('ebpMain'); if(main)main.src=el.src;
+    var ts=document.querySelectorAll('.ebp-thumb');
+    for(var i=0;i<ts.length;i++)ts[i].classList.remove('active');
+    el.classList.add('active');
+  };
+  window.renderEbayPreview = function(){
+    var host=document.getElementById('ebayPreview');
+    var L=window._L; if(!host||!L)return;
+    var condSel=document.getElementById('conditionOverride');
+    var condLabel=condSel?condSel.options[condSel.selectedIndex].text:(L.ebay_condition_label||'Pre-owned');
+    var price=priceData?priceData.recommended_price:'';
+    var srcs=Object.values(images).map(function(im){return 'data:'+im.mime+';base64,'+im.b64;});
+    var mainSrc=srcs[0]||'';
+    var thumbs=srcs.map(function(src,i){return '<img class="ebp-thumb'+(i===0?' active':'')+'" src="'+src+'" onclick="ebpSwap(this)" alt="">';}).join('');
+    var descHtml=L.descriptionHtml||('<p>'+esc(L.description||'')+'</p>');
+    host.innerHTML=
+      '<div class="ebp">'
+      +'<div class="ebp-gallery">'
+      +(mainSrc?'<img class="ebp-main" id="ebpMain" src="'+mainSrc+'" alt="">':'<div class="ebp-main ebp-noimg">No photo</div>')
+      +(thumbs?'<div class="ebp-thumbs">'+thumbs+'</div>':'')
+      +'</div>'
+      +'<div class="ebp-info">'
+      +'<div class="ebp-cond">'+esc(condLabel)+'</div>'
+      +'<div class="ebp-title">'+esc(L.title||'')+'</div>'
+      +'<div class="ebp-price">&pound;'+esc(String(price))+'</div>'
+      +'<div class="ebp-ship">'+esc(L.postage_suggestion||'Postage calculated at checkout')+'</div>'
+      +'<div class="ebp-btns">'
+      +'<button class="ebp-buy" type="button">Buy it now</button>'
+      +'<button class="ebp-offer" type="button">Make offer</button>'
+      +'<button class="ebp-watch" type="button">&#9825; Add to watchlist</button>'
+      +'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="ebp-desc"><h3>Description</h3>'+descHtml+'</div>';
   };
 
   // ── PREVIEW LISTING ────────────────────────────────────────────────────────
