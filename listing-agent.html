@@ -1260,6 +1260,14 @@ document.addEventListener("DOMContentLoaded", function() {
   };
 
   // ── STEP 5: LISTING ───────────────────────────────────────────────────────
+  // eBay caps titles at 80 chars — trim at a word boundary, never mid-word.
+  function trimTitle(t, max){
+    t = String(t||"").trim();
+    if(t.length<=max) return t;
+    var cut=t.slice(0,max), sp=cut.lastIndexOf(' ');
+    return (sp>40?cut.slice(0,sp):cut).trim();
+  }
+
   window.genListing=async function(){
     setStep(5);
     var p5=document.getElementById("p5"); p5.style.display="block";
@@ -1297,6 +1305,7 @@ document.addEventListener("DOMContentLoaded", function() {
         +"seller_notes: 1-2 practical eBay selling tips for this item type"
       }],"You are an expert eBay UK listing writer. Honest, clear, search-optimised. Condition must reflect actual item use — if the seller describes wear, marks or normal use, the item is NOT New. Return only valid JSON.");
       var L=parseJSON(raw); window._L=L;
+      L.title = trimTitle(L.title || "", 80); // eBay hard-caps titles at 80 chars
 
       // Format description — convert \n\n to paragraphs for display and eBay HTML
       var descRaw  = L.description || "";
@@ -1305,8 +1314,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
       var html='<div class="card">'
         +'<div class="cb"><span class="lbl" style="margin:0">Listing title</span><button class="btn btn-sm" onclick="cp(\'tEl\',\'f1\')">Copy</button></div>'
-        +'<div id="tEl" style="font-size:15px;font-weight:500;line-height:1.5">'+esc(L.title||"")+'</div>'
-        +'<div class="cc">'+(L.title||"").length+'/80 chars &bull; Condition: '+esc(L.ebay_condition_label||"Good")+'</div>'
+        +'<input id="tEl" type="text" maxlength="80" value="'+esc(L.title||"").replace(/"/g,"&quot;")+'" style="width:100%;font-size:15px;font-weight:500;line-height:1.5;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 11px;outline:none">'
+        +'<div class="cc"><span id="titleCount">'+(L.title||"").length+'</span>/80 chars &bull; Condition: '+esc(L.ebay_condition_label||"Good")+'</div>'
         +'<span id="f1" class="flash" style="display:none">Copied!</span></div>'
         +'<div class="card"><div class="cb"><span class="lbl" style="margin:0">Description</span><button class="btn btn-sm" onclick="cp(\'dEl\',\'f2\')">Copy</button></div>'
         +'<div id="dEl" class="lo" style="line-height:1.7">'+descHtml+'</div>'
@@ -1369,6 +1378,12 @@ document.addEventListener("DOMContentLoaded", function() {
       renderEbayPreview();
       var condSel=document.getElementById('conditionOverride');
       if(condSel)condSel.addEventListener('change',renderEbayPreview);
+      var titleInput=document.getElementById('tEl');
+      if(titleInput)titleInput.addEventListener('input',function(){
+        L.title=titleInput.value;
+        var tc=document.getElementById('titleCount'); if(tc)tc.textContent=titleInput.value.length;
+        renderEbayPreview();
+      });
     } catch(e) {
       p5.innerHTML='<div class="err">'+esc(e.message)+'</div>';
     }
@@ -1745,7 +1760,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ── COPY & RESET ──────────────────────────────────────────────────────────
-  window.cp=function(id,fid){var el=document.getElementById(id);if(!el)return;navigator.clipboard.writeText(el.innerText||el.textContent).then(function(){var f=document.getElementById(fid);if(f){f.style.display="inline";setTimeout(function(){f.style.display="none";},2000);}});};
+  window.cp=function(id,fid){var el=document.getElementById(id);if(!el)return;var val=(el.tagName==='INPUT'||el.tagName==='TEXTAREA')?el.value:(el.innerText||el.textContent);navigator.clipboard.writeText(val).then(function(){var f=document.getElementById(fid);if(f){f.style.display="inline";setTimeout(function(){f.style.display="none";},2000);}});};
   window.cpFull=function(){var L=window._L;if(!L)return;var txt=["TITLE: "+(L.title||""),"",L.description||"","",priceData?"PRICE: £"+priceData.recommended_price+"  |  Best offer floor: £"+priceData.best_offer_floor:"","CONDITION: "+(L.ebay_condition_label||"Good"),"CATEGORY: "+(L.category_suggestion||""),"POSTAGE: "+(L.postage_suggestion||"")].join("\n");navigator.clipboard.writeText(txt).then(function(){var f=document.getElementById("ff");if(f){f.style.display="inline";setTimeout(function(){f.style.display="none";},3000);}});};
   window.resetAll=function(){
     images={};itemInfo=null;cond={};priceData=null;
