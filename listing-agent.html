@@ -29,8 +29,9 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 /* photo intro + slots */
 .photo-intro{font-size:13px;color:var(--text-dim);margin-bottom:1rem;line-height:1.6;padding:.75rem 1rem;background:var(--surface-2);border-radius:8px}
 .photo-intro strong{color:var(--text)}
-.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
-.slot{border:2px dashed var(--border-lit);border-radius:10px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;background:var(--surface-2);text-align:center;padding:8px}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:1rem}
+.slot{border:2px dashed var(--border-lit);border-radius:10px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;position:relative;background:var(--surface-2);text-align:center;padding:8px;min-width:0;overflow:hidden}
+.slot-label,.slot-sub{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .slot:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-2))}
 .slot.filled{border-style:solid;border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent)}
 .slot.optional{border-style:dashed;border-color:var(--border-lit)}
@@ -38,6 +39,9 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 .slot-icon{font-size:22px;display:block;margin-bottom:4px}
 .slot-label{font-size:11px;font-weight:600;color:var(--text-dim);line-height:1.3}
 .slot-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
+.slot-rot{position:absolute;bottom:4px;right:4px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
+.slot-rot:hover{background:rgba(0,0,0,.85)}
+.slot-blur{position:absolute;top:4px;right:4px;background:var(--accent-2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
 .slot-rm{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--bad) 22%,var(--surface));border:1px solid var(--bad);cursor:pointer;font-size:13px;color:var(--bad);display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
 .slot-badge{position:absolute;top:4px;left:4px;background:var(--good);color:var(--accent-ink);font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
 .slot-req{position:absolute;top:4px;right:4px;background:var(--bad);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px}
@@ -137,8 +141,19 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
   .price-main{font-size:24px}
   .btn{padding:8px 13px}
   .step{font-size:10px;padding:8px 2px}
-  .slots{gap:6px}
+  .slots{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+  .slot{padding:5px}
   .slot-sub{display:none}
+  .slot-icon{font-size:18px;margin-bottom:2px}
+  .slot-label{font-size:10px;line-height:1.2}
+  .slot-req{display:none}
+  .card{padding:.85rem 1rem}
+  .lo{padding:.8rem}
+  .btn-row{gap:6px}
+  .cb{flex-wrap:wrap;gap:6px}
+  img,canvas,video{max-width:100%;height:auto}
+  pre,code{white-space:pre-wrap;word-break:break-word}
+  .err,.ok,.warn{word-break:break-word;overflow-wrap:anywhere}
 }
 /* entrance animations */
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -168,7 +183,7 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 #ebayPreview .ebp-desc{margin-top:18px;border-top:1px solid #e5e7eb;padding-top:14px}
 #ebayPreview .ebp-desc h3{font-size:16px;margin-bottom:8px;color:#111820}
 #ebayPreview .ebp-desc p{font-size:14px;line-height:1.6;margin-bottom:8px;color:#333}
-@media(max-width:560px){#ebayPreview .ebp-gallery{flex-basis:100%;max-width:none}}
+@media(max-width:560px){#ebayPreview{padding:12px}#ebayPreview .ebp{gap:14px}#ebayPreview .ebp-gallery{flex-basis:100%;max-width:none}#ebayPreview .ebp-info{min-width:0}#ebayPreview .ebp-title{font-size:17px}#ebayPreview .ebp-price{font-size:22px}}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 /* header brand mark */
 .brand-mark{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center;flex-shrink:0;border:2px solid var(--border-lit);background:var(--surface-2);display:block}
@@ -480,6 +495,25 @@ document.addEventListener("DOMContentLoaded", function() {
           div.appendChild(conf);
         }
 
+        // Blurred-face badge
+        if (images[slot.id].faces) {
+          var fb = document.createElement("div");
+          fb.className = "slot-blur";
+          fb.textContent = "BLURRED";
+          fb.title = images[slot.id].faces + " face(s) blurred for privacy";
+          div.appendChild(fb);
+        }
+
+        // Rotate button
+        var rot = document.createElement("div");
+        rot.className = "slot-rot"; rot.innerHTML = "&#8635;";
+        rot.title = "Rotate 90°";
+        rot.addEventListener("click", function(e){
+          e.stopPropagation();
+          rotateSlot(slot.id);
+        });
+        div.appendChild(rot);
+
         // Remove button
         var rm = document.createElement("div"); rm.className="slot-rm"; rm.textContent="×";
         rm.addEventListener("click", function(e){
@@ -612,6 +646,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!slotExists || images[a.slot_id]) return;
         var photo = photoList[a.photo_index];
         images[a.slot_id] = {
+          faces:      photo.faces,
           b64:        photo.b64,
           mime:       photo.mime,
           label:      currentSlots.find(function(s){return s.id===a.slot_id;}).label,
@@ -665,7 +700,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (heicFiles.length) { showHeicModal(heicFiles.map(function(f){return f.name;})); files = files.filter(function(f){return !isHeic(f);}); }
     if (!files.length) return;
 
-    uploadMsg.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;padding:.5rem 0"><span class="mini-spin"></span> Loading '+files.length+' photo'+(files.length>1?'s':'')+'&hellip;</div>';
+    uploadMsg.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;padding:.5rem 0"><span class="mini-spin"></span> Loading '+files.length+' photo'+(files.length>1?'s':'')+' &mdash; straightening and checking for faces&hellip;</div>';
 
     // Load all files into memory first
     var loaded = [];
@@ -673,10 +708,9 @@ document.addEventListener("DOMContentLoaded", function() {
       var f = files[i];
       if (f.size > 20*1024*1024) { continue; }
       try {
-        var mime = (f.type && f.type.startsWith("image/")) ? f.type : "image/jpeg";
-        var b64  = await fileToBase64(f);
-        await verifyImage("data:"+mime+";base64,"+b64);
-        loaded.push({b64:b64, mime:mime, name:f.name});
+        var proc = await processIncoming(f);
+        await verifyImage("data:"+proc.mime+";base64,"+proc.b64);
+        loaded.push({b64:proc.b64, mime:proc.mime, name:f.name, faces:proc.faces});
       } catch(e) { /* skip unreadable files */ }
     }
 
@@ -684,9 +718,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // If only 1 photo, put it in the main slot directly — no need for AI assignment
     if (loaded.length === 1) {
-      images["main"] = {b64:loaded[0].b64, mime:loaded[0].mime, label:"Main photo", aiAssigned:false};
+      images["main"] = {b64:loaded[0].b64, mime:loaded[0].mime, label:"Main photo", aiAssigned:false, faces:loaded[0].faces};
       renderSlots();
-      uploadMsg.innerHTML = '<div class="ok">&#10003; 1 photo added to main slot.</div>';
+      uploadMsg.innerHTML = '<div class="ok">&#10003; 1 photo added to main slot.'
+        + (loaded[0].faces ? ' Face blurred for privacy.' : '') + '</div>';
       return;
     }
 
@@ -740,6 +775,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (images[slotId]) return; // slot already filled, skip
         var photo = loaded[a.photo_index];
         images[slotId] = {
+          faces: photo.faces,
           b64: photo.b64,
           mime: photo.mime,
           label: currentSlots.find(function(s){return s.id===slotId;}).label,
@@ -781,18 +817,144 @@ document.addEventListener("DOMContentLoaded", function() {
     if (isHeic(f)) { showHeicModal([f.name]); return; }
     if (f.size > 20*1024*1024) { uploadMsg.innerHTML='<div class="err">File too large (max 20MB)</div>'; return; }
     try {
-      var mime = (f.type && f.type.startsWith("image/")) ? f.type : "image/jpeg";
-      var b64  = await fileToBase64(f);
-      await verifyImage("data:"+mime+";base64,"+b64);
+      var proc = await processIncoming(f);
+      await verifyImage("data:"+proc.mime+";base64,"+proc.b64);
       var slotDef = currentSlots.find(function(s){return s.id===activeSlotId;});
-      images[activeSlotId] = {b64:b64, mime:mime, label:slotDef?slotDef.label:"Photo", aiAssigned:false};
+      images[activeSlotId] = {b64:proc.b64, mime:proc.mime, label:slotDef?slotDef.label:"Photo", aiAssigned:false, faces:proc.faces};
       renderSlots();
-      uploadMsg.innerHTML = "";
+      uploadMsg.innerHTML = proc.faces ? '<div class="ok">&#10003; Face blurred for privacy.</div>' : "";
     } catch(err) {
       uploadMsg.innerHTML = '<div class="err">Could not load image: '+esc(err.message)+'</div>';
     }
     activeSlotId = null;
   });
+
+  // ── IMAGE PROCESSING ──────────────────────────────────────────────────────
+  // Loads a file with EXIF orientation applied (phone photos are often stored
+  // sideways), then blurs any detected faces before the photo is used anywhere.
+  function loadImg(src){
+    return new Promise(function(ok,fail){
+      var i=new Image();
+      i.onload=function(){ok(i);};
+      i.onerror=function(){fail(new Error("Not a valid image"));};
+      i.src=src;
+    });
+  }
+
+  // Read a File into base64 with EXIF rotation baked in.
+  async function fileToUprightBase64(file){
+    try {
+      if (window.createImageBitmap) {
+        var bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        var c = document.createElement('canvas');
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0);
+        if (bmp.close) bmp.close();
+        return { b64: c.toDataURL('image/jpeg', 0.92).split(',')[1], mime: 'image/jpeg' };
+      }
+    } catch(e) { /* fall through to plain read */ }
+    var mime = (file.type && file.type.startsWith("image/")) ? file.type : "image/jpeg";
+    var b64  = await fileToBase64(file);
+    return { b64: b64, mime: mime };
+  }
+
+  // Lazy-load the face detector only when photos are actually added.
+  var _faceDetector = null, _faceInitDone = false;
+  async function getFaceDetector(){
+    if (_faceInitDone) return _faceDetector;
+    _faceInitDone = true;
+    try {
+      var V = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+      var vision  = await import(V);
+      var fileset = await vision.FilesetResolver.forVisionTasks(V + '/wasm');
+      _faceDetector = await vision.FaceDetector.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
+          delegate: 'CPU'
+        },
+        runningMode: 'IMAGE',
+        minDetectionConfidence: 0.35
+      });
+      console.log('Face detector ready');
+    } catch(e) {
+      console.warn('Face detector unavailable — photos will not be blurred:', e.message);
+      _faceDetector = null;
+    }
+    return _faceDetector;
+  }
+
+  // Pixelate + blur a region (belt and braces: pixelation works everywhere,
+  // the blur filter adds softening where supported).
+  function obscureRegion(ctx, canvas, x, y, w, h){
+    x=Math.round(x); y=Math.round(y); w=Math.round(w); h=Math.round(h);
+    if (w<=0 || h<=0) return;
+    var sw=Math.max(3,Math.round(w/14)), sh=Math.max(3,Math.round(h/14));
+    var small=document.createElement('canvas');
+    small.width=sw; small.height=sh;
+    small.getContext('2d').drawImage(canvas, x,y,w,h, 0,0, sw,sh);
+    ctx.save();
+    ctx.beginPath();
+    if (ctx.ellipse) ctx.ellipse(x+w/2, y+h/2, w/2, h/2, 0, 0, Math.PI*2);
+    else ctx.rect(x,y,w,h);
+    ctx.clip();
+    try { ctx.filter = 'blur(' + Math.max(6, Math.round(Math.min(w,h)/8)) + 'px)'; } catch(e) {}
+    ctx.drawImage(small, 0,0,sw,sh, x,y,w,h);
+    try { ctx.filter = 'none'; } catch(e) {}
+    ctx.restore();
+  }
+
+  // Detect and obscure faces. Returns the (possibly modified) image.
+  async function blurFaces(b64, mime){
+    var det = await getFaceDetector();
+    if (!det) return { b64:b64, mime:mime, faces:0 };
+    try {
+      var img = await loadImg('data:'+mime+';base64,'+b64);
+      var c = document.createElement('canvas');
+      c.width  = img.naturalWidth  || img.width;
+      c.height = img.naturalHeight || img.height;
+      var ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      var result = det.detect(c);
+      var dets = (result && result.detections) || [];
+      if (!dets.length) return { b64:b64, mime:mime, faces:0 };
+      dets.forEach(function(d){
+        var bb = d.boundingBox; if (!bb) return;
+        var pad = Math.max(bb.width, bb.height) * 0.35; // generous margin
+        var x = Math.max(0, bb.originX - pad);
+        var y = Math.max(0, bb.originY - pad);
+        var w = Math.min(c.width  - x, bb.width  + pad*2);
+        var h = Math.min(c.height - y, bb.height + pad*2);
+        obscureRegion(ctx, c, x, y, w, h);
+      });
+      return { b64: c.toDataURL('image/jpeg',0.92).split(',')[1], mime:'image/jpeg', faces: dets.length };
+    } catch(e) {
+      console.warn('Face blur failed:', e.message);
+      return { b64:b64, mime:mime, faces:0 };
+    }
+  }
+
+  // One entry point for every incoming photo: upright it, then blur faces.
+  async function processIncoming(file){
+    var up = await fileToUprightBase64(file);
+    var out = await blurFaces(up.b64, up.mime);
+    return { b64: out.b64, mime: out.mime, faces: out.faces };
+  }
+
+  // Manual 90° rotation for photos that came in sideways.
+  window.rotateSlot = async function(slotId){
+    var im = images[slotId]; if (!im) return;
+    try {
+      var img = await loadImg('data:'+im.mime+';base64,'+im.b64);
+      var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      var c = document.createElement('canvas');
+      c.width = h; c.height = w;
+      var ctx = c.getContext('2d');
+      ctx.translate(h/2, w/2); ctx.rotate(Math.PI/2); ctx.drawImage(img, -w/2, -h/2);
+      im.b64  = c.toDataURL('image/jpeg',0.92).split(',')[1];
+      im.mime = 'image/jpeg';
+      renderSlots();
+    } catch(e) { console.warn('Rotate failed:', e.message); }
+  };
 
   function isHeic(f){ var ext=(f.name||"").split(".").pop().toLowerCase(); var mime=(f.type||"").toLowerCase(); return ext==="heic"||ext==="heif"||mime.includes("heic")||mime.includes("heif"); }
   function fileToBase64(file){ return new Promise(function(ok,fail){var fr=new FileReader();fr.onload=function(){ok(fr.result.split(",")[1]);};fr.onerror=fail;fr.readAsDataURL(file);}); }
