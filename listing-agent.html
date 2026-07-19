@@ -41,7 +41,9 @@ body{font-family:var(--font);font-size:15px;color:var(--text);background:var(--b
 .slot-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
 .slot-rot{position:absolute;bottom:4px;right:4px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;line-height:1}
 .slot-rot:hover{background:rgba(0,0,0,.85)}
-.slot-blur{position:absolute;top:4px;right:4px;background:var(--accent-2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
+.slot-blur{position:absolute;top:4px;right:4px;background:var(--accent-2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:3;cursor:pointer;user-select:none}
+.slot-blur:hover{filter:brightness(1.15)}
+.slot-blur.off{background:var(--muted);text-decoration:line-through}
 .slot-rm{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--bad) 22%,var(--surface));border:1px solid var(--bad);cursor:pointer;font-size:13px;color:var(--bad);display:flex;align-items:center;justify-content:center;z-index:2;line-height:1}
 .slot-badge{position:absolute;top:4px;left:4px;background:var(--good);color:var(--accent-ink);font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;z-index:2}
 .slot-req{position:absolute;top:4px;right:4px;background:var(--bad);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px}
@@ -348,6 +350,17 @@ document.addEventListener("DOMContentLoaded", function() {
       {id:"accessories",label:"Accessories",sub:"Box, cable, charger, case",       icon:"&#128218;", required:false},
       {id:"defect",  label:"Defects",       sub:"Scratches, cracks or marks",      icon:"&#9888;",   required:false},
     ],
+    "Vehicle Parts": [
+      {id:"main",     label:"Main view",      sub:"Whole part, front on",        icon:"&#128247;", required:true},
+      {id:"partno",   label:"Part number",    sub:"Stamped or printed OE number",icon:"&#127991;", required:true},
+      {id:"side",     label:"Side view",      sub:"Profile of the part",         icon:"&#128247;", required:true},
+      {id:"back",     label:"Reverse",        sub:"Back or underside",           icon:"&#128247;", required:true},
+      {id:"mounting", label:"Mounting points",sub:"Bolt holes, brackets, tabs",  icon:"&#128269;", required:false},
+      {id:"connector",label:"Connectors",     sub:"Plugs, pins or fittings",     icon:"&#128269;", required:false},
+      {id:"wear",     label:"Wear / damage",  sub:"Corrosion, cracks or scoring",icon:"&#9888;",   required:false},
+      {id:"label",    label:"Maker's label",  sub:"Brand or manufacturer mark",  icon:"&#127991;", required:false},
+      {id:"incl",     label:"What's included",sub:"Fixings and extras supplied", icon:"&#128218;", required:false},
+    ],
     "Sporting Goods": [
       {id:"main",    label:"Main view",     sub:"Full item front",                 icon:"&#128247;", required:true},
       {id:"side",    label:"Side view",     sub:"Profile",                         icon:"&#128247;", required:true},
@@ -495,12 +508,19 @@ document.addEventListener("DOMContentLoaded", function() {
           div.appendChild(conf);
         }
 
-        // Blurred-face badge
+        // Blur badge — click to toggle if detection got it wrong
         if (images[slot.id].faces) {
+          var on = images[slot.id].blurOn !== false;
           var fb = document.createElement("div");
-          fb.className = "slot-blur";
-          fb.textContent = "BLURRED";
-          fb.title = images[slot.id].faces + " face(s) blurred for privacy";
+          fb.className = "slot-blur" + (on ? "" : " off");
+          fb.textContent = on ? "BLURRED" : "UNBLURRED";
+          fb.title = on
+            ? images[slot.id].faces + " face(s) blurred — click to remove blur"
+            : "Blur removed — click to re-apply";
+          fb.addEventListener("click", function(e){
+            e.stopPropagation();
+            toggleBlur(slot.id);
+          });
           div.appendChild(fb);
         }
 
@@ -647,6 +667,9 @@ document.addEventListener("DOMContentLoaded", function() {
         var photo = photoList[a.photo_index];
         images[a.slot_id] = {
           faces:      photo.faces,
+          origB64:    photo.origB64,
+          origMime:   photo.origMime,
+          blurOn:     photo.blurOn,
           b64:        photo.b64,
           mime:       photo.mime,
           label:      currentSlots.find(function(s){return s.id===a.slot_id;}).label,
@@ -710,7 +733,7 @@ document.addEventListener("DOMContentLoaded", function() {
       try {
         var proc = await processIncoming(f);
         await verifyImage("data:"+proc.mime+";base64,"+proc.b64);
-        loaded.push({b64:proc.b64, mime:proc.mime, name:f.name, faces:proc.faces});
+        loaded.push({b64:proc.b64, mime:proc.mime, name:f.name, faces:proc.faces, origB64:proc.origB64, origMime:proc.origMime, blurOn:proc.blurOn});
       } catch(e) { /* skip unreadable files */ }
     }
 
@@ -718,7 +741,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // If only 1 photo, put it in the main slot directly — no need for AI assignment
     if (loaded.length === 1) {
-      images["main"] = {b64:loaded[0].b64, mime:loaded[0].mime, label:"Main photo", aiAssigned:false, faces:loaded[0].faces};
+      images["main"] = {b64:loaded[0].b64, mime:loaded[0].mime, label:"Main photo", aiAssigned:false, faces:loaded[0].faces, origB64:loaded[0].origB64, origMime:loaded[0].origMime, blurOn:loaded[0].blurOn};
       renderSlots();
       uploadMsg.innerHTML = '<div class="ok">&#10003; 1 photo added to main slot.'
         + (loaded[0].faces ? ' Face blurred for privacy.' : '') + '</div>';
@@ -776,6 +799,9 @@ document.addEventListener("DOMContentLoaded", function() {
         var photo = loaded[a.photo_index];
         images[slotId] = {
           faces: photo.faces,
+          origB64: photo.origB64,
+          origMime: photo.origMime,
+          blurOn: photo.blurOn,
           b64: photo.b64,
           mime: photo.mime,
           label: currentSlots.find(function(s){return s.id===slotId;}).label,
@@ -820,7 +846,7 @@ document.addEventListener("DOMContentLoaded", function() {
       var proc = await processIncoming(f);
       await verifyImage("data:"+proc.mime+";base64,"+proc.b64);
       var slotDef = currentSlots.find(function(s){return s.id===activeSlotId;});
-      images[activeSlotId] = {b64:proc.b64, mime:proc.mime, label:slotDef?slotDef.label:"Photo", aiAssigned:false, faces:proc.faces};
+      images[activeSlotId] = {b64:proc.b64, mime:proc.mime, label:slotDef?slotDef.label:"Photo", aiAssigned:false, faces:proc.faces, origB64:proc.origB64, origMime:proc.origMime, blurOn:proc.blurOn};
       renderSlots();
       uploadMsg.innerHTML = proc.faces ? '<div class="ok">&#10003; Face blurred for privacy.</div>' : "";
     } catch(err) {
@@ -873,7 +899,7 @@ document.addEventListener("DOMContentLoaded", function() {
           delegate: 'CPU'
         },
         runningMode: 'IMAGE',
-        minDetectionConfidence: 0.35
+        minDetectionConfidence: 0.6
       });
       console.log('Face detector ready');
     } catch(e) {
@@ -915,7 +941,28 @@ document.addEventListener("DOMContentLoaded", function() {
       var ctx = c.getContext('2d');
       ctx.drawImage(img, 0, 0);
       var result = det.detect(c);
-      var dets = (result && result.detections) || [];
+      var raw = (result && result.detections) || [];
+
+      // Reject implausible detections. MediaPipe will occasionally fire on
+      // patterned fabric, logos or hardware, so a detection must also be a
+      // sensible size, roughly face-shaped, confident, and carry facial
+      // keypoints (eyes/nose/mouth/ears) before we obscure anything.
+      var imgArea = c.width * c.height;
+      var dets = raw.filter(function(d){
+        var bb = d.boundingBox; if (!bb || !bb.width || !bb.height) return false;
+        var area  = bb.width * bb.height;
+        if (area < imgArea * 0.002) return false;   // too small to be a face
+        if (area > imgArea * 0.55)  return false;   // implausibly large
+        var ratio = bb.width / bb.height;
+        if (ratio < 0.55 || ratio > 1.9) return false; // faces are near-square
+        var score = d.categories && d.categories[0] && d.categories[0].score;
+        if (typeof score === 'number' && score < 0.6) return false;
+        if (d.keypoints && d.keypoints.length < 4) return false; // no facial landmarks
+        return true;
+      });
+      if (raw.length !== dets.length) {
+        console.log('Face blur: ignored ' + (raw.length - dets.length) + ' implausible detection(s)');
+      }
       if (!dets.length) return { b64:b64, mime:mime, faces:0 };
       dets.forEach(function(d){
         var bb = d.boundingBox; if (!bb) return;
@@ -935,10 +982,33 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // One entry point for every incoming photo: upright it, then blur faces.
   async function processIncoming(file){
-    var up = await fileToUprightBase64(file);
+    var up  = await fileToUprightBase64(file);
     var out = await blurFaces(up.b64, up.mime);
-    return { b64: out.b64, mime: out.mime, faces: out.faces };
+    // Keep the untouched original so blurring can be undone if it misfires.
+    return {
+      b64:      out.b64,
+      mime:     out.mime,
+      faces:    out.faces,
+      origB64:  up.b64,
+      origMime: up.mime,
+      blurOn:   out.faces > 0
+    };
   }
+
+  // Toggle blurring on a photo — for when detection gets it wrong.
+  window.toggleBlur = function(slotId){
+    var im = images[slotId];
+    if (!im || !im.origB64 || !im.faces) return;
+    if (im.blurOn) {
+      im.blurredB64 = im.b64; im.blurredMime = im.mime;   // stash before reverting
+      im.b64 = im.origB64;    im.mime = im.origMime;
+      im.blurOn = false;
+    } else {
+      if (im.blurredB64) { im.b64 = im.blurredB64; im.mime = im.blurredMime; }
+      im.blurOn = true;
+    }
+    renderSlots();
+  };
 
   // Manual 90° rotation for photos that came in sideways.
   window.rotateSlot = async function(slotId){
